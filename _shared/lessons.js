@@ -7,7 +7,7 @@ window.MB_TRACKS = {
     lessons: [
       { id: "A1", title: "Meet the micro:bit", week: 1, folder: "Track_A_EB7-EB8/A01_Meet_the_microbit", file: "A01" },
       { id: "A2", title: "Algorithms & animation", week: 2, folder: "Track_A_EB7-EB8/A02_Algorithms_and_animation", file: "A02" },
-      { id: "A3", title: "Events & inputs", week: 3 },
+      { id: "A3", title: "Events & inputs", week: 3, folder: "Track_A_EB7-EB8/A03_Events_and_inputs", file: "A03" },
       { id: "A4", title: "Variables", week: 4 },
       { id: "A5", title: "Random & decisions", week: 5 },
       { id: "A6", title: "Loops & reaction game", week: 6 },
@@ -22,7 +22,7 @@ window.MB_TRACKS = {
     lessons: [
       { id: "B1", title: "Crash course: meet the micro:bit", week: 1, folder: "Track_B_EB9-Seconde/B01_Crash_course", file: "B01" },
       { id: "B2", title: "Logic in blocks", week: 2, folder: "Track_B_EB9-Seconde/B02_Logic_in_blocks", file: "B02" },
-      { id: "B3", title: "Hello Python", week: 3 },
+      { id: "B3", title: "Hello Python", week: 3, folder: "Track_B_EB9-Seconde/B03_Hello_Python", file: "B03" },
       { id: "B4", title: "Variables & decisions (Python)", week: 4 },
       { id: "B5", title: "Lists & random", week: 5 },
       { id: "B6", title: "Functions & debugging", week: 6 },

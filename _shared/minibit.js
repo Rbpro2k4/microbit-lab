@@ -112,7 +112,7 @@
   let uid = 0;
   class MiniBit {
     /**
-     * opts: { buttons: true, logo: true, shake: false, designer: false, caption: "", size: 300 }
+     * opts: { buttons: true, logo: true, shake: false, ab: false, designer: false, caption: "", size: 300 }
      */
     constructor(container, opts = {}) {
       this.opts = Object.assign({ buttons: true, logo: true, shake: false, designer: false, caption: "" }, opts);
@@ -123,10 +123,19 @@
       this.root.className = "minibit" + (this.opts.designer ? " designer" : "");
       container.appendChild(this.root);
       this._build();
-      if (this.opts.shake || this.opts.controls) {
+      if (this.opts.shake || this.opts.ab || this.opts.controls) {
         this.controls = document.createElement("div");
         this.controls.className = "controls";
         this.root.appendChild(this.controls);
+      }
+      if (this.opts.ab) {
+        // Nobody can click two buttons at once with a mouse: this presses A and B together.
+        const b = document.createElement("button");
+        b.className = "btn small";
+        b.type = "button";
+        b.textContent = "A+B";
+        b.addEventListener("click", () => { this.pressAnim("A"); this.pressAnim("B"); this._emit("AB"); });
+        this.controls.appendChild(b);
       }
       if (this.opts.shake) {
         const b = document.createElement("button");

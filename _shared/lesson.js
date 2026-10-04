@@ -136,16 +136,35 @@
     bar.appendChild(b);
   }
 
-  /** Code panel. lang: "blocks" (MakeCode JS rendered as blocks) or "python". */
+  /** Python source -> HTML with colour classes, one .ln span per line (CSS numbers the lines). */
+  const PY_KW = new Set(["from", "import", "while", "for", "in", "if", "elif", "else", "def", "return", "and", "or", "not", "break", "continue", "pass", "as", "with", "try", "except", "lambda", "global", "None", "True", "False"]);
+  function pyHighlight(code) {
+    return String(code).split("\n").map(line => {
+      let out = "", m;
+      const re = /(#.*$)|("(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?)|(\b\d+\b)|([A-Za-z_]\w*)|([\s\S])/g;
+      while ((m = re.exec(line))) {
+        if (m[1]) out += `<span class="py-c">${esc(m[1])}</span>`;
+        else if (m[2]) out += `<span class="py-s">${esc(m[2])}</span>`;
+        else if (m[3]) out += `<span class="py-n">${m[3]}</span>`;
+        else if (m[4]) out += PY_KW.has(m[4]) ? `<span class="py-k">${m[4]}</span>` : line[re.lastIndex] === "(" ? `<span class="py-f">${m[4]}</span>` : m[4];
+        else out += esc(m[5]);
+      }
+      return `<span class="ln">${out}</span>`;
+    }).join("\n");
+  }
+
+  /** Code panel. lang: "blocks" (MakeCode JS rendered as blocks) or "python".
+      Python panels have a Copy button unless copy: false (students should type the code). */
   function codePanel(code, opt = {}) {
     const lang = opt.lang || "blocks";
     const box = h(`<div class="code-panel"><div class="bar"><span>${lang === "python" ? I("terminal") + " Python" : I("puzzle") + " MakeCode blocks"}</span>${opt.label ? `<span>· ${esc(opt.label)}</span>` : ""}<span class="spacer"></span></div><div class="cp-body"></div></div>`);
     const bar = box.querySelector(".bar"), body = box.querySelector(".cp-body");
     let current = code;
     if (lang === "python") {
-      const p = pre(code); body.appendChild(p);
-      addCopy(bar, () => current);
-      box.update = c => { current = c; p.textContent = c; };
+      const p = pre(""); p.classList.add("py"); p.innerHTML = pyHighlight(code); body.appendChild(p);
+      if (TEACHER || opt.copy !== false) addCopy(bar, () => current);
+      else bar.appendChild(h(`<span class="type-it">${I("keyboard")} Type it yourself</span>`));
+      box.update = c => { current = c; p.innerHTML = pyHighlight(c); };
       return box;
     }
     const blocks = h(`<div class="blocks"><div class="loading"><span class="spinner"></span> Loading blocks…</div></div>`);
@@ -527,9 +546,28 @@
     if (sec.after) c.appendChild(h(`<div class="tip" style="margin-top:16px">${rich(sec.after)}</div>`));
   };
 
+  /* variant: "python" draws the micro:bit Python Editor (python.microbit.org) instead of MakeCode. */
   R.editorTour = (sec, c) => {
     const seen = new Set(store.get("tour:" + sec.id, []));
-    const mock = h(`
+    const python = sec.variant === "python";
+    const mock = python ? h(`
+      <div class="mc-mock py-mock" aria-label="Picture of the micro:bit Python Editor">
+        <div class="py-body">
+          <div class="py-side">
+            <span class="py-logo" aria-hidden="true"><i></i><i></i></span>
+            <span class="py-tab" data-p="reference">${I("book-open")}Reference</span>
+            <span class="py-tab">${I("lightbulb")}Ideas</span>
+            <span class="py-tab">${I("code")}API</span>
+            <span class="py-tab" data-p="project">${I("folder")}Project</span>
+          </div>
+          <div class="py-main">
+            <div class="py-head">${I("pencil")}<span>Untitled project</span></div>
+            <pre class="py-code"></pre>
+            <div class="py-bottom"><span class="py-send">${I("usb")} Send to micro:bit</span><span class="spacer" style="flex:1"></span><span class="py-save">${I("download")} Save</span><span class="py-open">${I("folder")} Open…</span></div>
+          </div>
+          <div class="py-sim"></div>
+        </div>
+      </div>`) : h(`
       <div class="mc-mock" aria-label="Picture of the MakeCode editor">
         <div class="mc-top"><span>${I("house")}</span><b>MakeCode</b><div class="seg"><span class="on">Blocks</span><span>JavaScript</span><span>Python</span></div><span>${I("settings")}</span></div>
         <div class="mc-body">
@@ -542,10 +580,13 @@
         <div class="mc-bottom"><span class="mc-dl">${I("download")} Download</span><span>⋯</span><span class="mc-name">Name badge</span><span>${I("save")}</span></div>
       </div>`);
     c.appendChild(mock);
-    new MiniBit(mock.querySelector(".mc-sim"), {}).showIcon("Happy");
+    if (python) mock.querySelector(".py-code").innerHTML = pyHighlight("# Imports go at the top\nfrom microbit import *\n\n# Code in a 'while True:' loop repeats forever\nwhile True:\n    display.show(Image.HEART)\n    sleep(1000)\n    display.scroll('Hello')");
+    new MiniBit(mock.querySelector(python ? ".py-sim" : ".mc-sim"), {}).showIcon(python ? "Heart" : "Happy");
     // corner pins sit inside an area; inline pins sit right after an element
-    const corner = { sim: [".mc-sim", "top:8px;left:8px"], toolbox: [".mc-tool", "top:8px;right:8px"], workspace: [".mc-ws", "top:8px;right:8px"] };
-    const inline = { download: ".mc-dl", name: ".mc-name", switch: ".seg" };
+    const corner = python
+      ? { code: [".py-code", "top:8px;right:8px"], sim: [".py-sim", "top:8px;left:8px"], send: [".py-send", "top:-13px;right:-10px"], save: [".py-save", "top:-13px;right:-10px"], reference: ['[data-p="reference"]', "top:-12px;right:-14px"], project: ['[data-p="project"]', "top:-12px;right:-14px"] }
+      : { sim: [".mc-sim", "top:8px;left:8px"], toolbox: [".mc-tool", "top:8px;right:8px"], workspace: [".mc-ws", "top:8px;right:8px"] };
+    const inline = python ? {} : { download: ".mc-dl", name: ".mc-name", switch: ".seg" };
     const legend = h(`<div class="mc-legend"></div>`);
     sec.parts.forEach((p, i) => {
       const pin = h(`<button type="button" class="mc-pin" aria-label="${esc(p.name)}">${i + 1}</button>`);
@@ -597,7 +638,7 @@
     const grid = h(`<div class="predict-grid"><div class="left"></div><div class="right"></div></div>`);
     c.appendChild(grid);
     const left = grid.querySelector(".left"), right = grid.querySelector(".right");
-    left.appendChild(codePanel(sec.code, { label: sec.codeLabel }));
+    left.appendChild(codePanel(sec.code, { label: sec.codeLabel, lang: sec.lang }));
     const mb = new MiniBit(right, { caption: "Virtual micro:bit", buttons: true, logo: true });
     const ctr = h(`<div class="row" style="justify-content:center;margin-top:8px"><button type="button" class="btn primary" data-act="run" ${TEACHER ? "" : "disabled"}>${I("play")} Run it</button><button type="button" class="btn ghost" data-act="stop">${I("square")} Stop</button></div>`);
     right.appendChild(ctr);
@@ -636,32 +677,49 @@
     return t;
   };
 
-  TOOLS.download = () => {
-    const t = h(`
-      <div class="tabs">
-        <div class="tabs-head" role="tablist"><button type="button" class="on" data-t="0">${I("zap")} Method 1: Connect &amp; Download</button><button type="button" data-t="1">${I("folder")} Method 2: Drag &amp; drop</button></div>
-        <div class="tabs-body">
-          <div data-p="0"><ol>
+  TOOLS.download = (tool) => {
+    if ((tool.editor || L.editor) === "python") return downloadTabs(
+      ["usb", "Method 1: Send to micro:bit", `<ol>
+            <li>Plug the micro:bit into the computer with the USB cable. The yellow light on the back turns on.</li>
+            <li>In the Python Editor, click <b>Send to micro:bit</b>. The first time, the editor shows you the steps to connect.</li>
+            <li>Choose <b>BBC micro:bit CMSIS-DAP</b> in the pop-up and click <b>Connect</b>.</li>
+            <li>Wait for the progress bar to finish: your program starts on the micro:bit.</li>
+            <li>Next time, just click <b>Send to micro:bit</b>.</li>
+          </ol><p style="font-size:.85rem;color:var(--muted);margin-top:8px">Works in <b>Chrome</b> and <b>Edge</b>.</p>`],
+      ["folder", "Method 2: Save &amp; drag", `<ol>
+            <li>Plug in the micro:bit. A drive called <b>MICROBIT</b> appears on the computer.</li>
+            <li>In the Python Editor, click <b>Save</b>. A file ending in <b>.hex</b> is saved (usually in <b>Downloads</b>).</li>
+            <li>Open <b>File Explorer</b>, find the .hex file and <b>drag it onto the MICROBIT drive</b>.</li>
+            <li>The yellow light flashes while it copies. When it stops, your program runs.</li>
+          </ol><p style="font-size:.85rem;color:var(--muted);margin-top:8px">The MICROBIT drive disappears and comes back after copying. That's normal!</p>`]);
+    return downloadTabs(
+      ["zap", "Method 1: Connect &amp; Download", `<ol>
             <li>Plug the micro:bit into the computer with the USB cable. The yellow light on the back turns on.</li>
             <li>In MakeCode, click the <b>three dots ⋯</b> next to <b>Download</b> and choose <b>Connect device</b>. (MakeCode may also ask you this the first time you press Download.)</li>
             <li>Follow the steps, choose <b>BBC micro:bit CMSIS-DAP</b> in the pop-up and click <b>Connect</b>.</li>
             <li>Click <b>Download</b>. The yellow light flashes, and your program starts on the micro:bit.</li>
             <li>Next time, just click <b>Download</b>. It goes straight to the micro:bit.</li>
-          </ol><p style="font-size:.85rem;color:var(--muted);margin-top:8px">Works in <b>Chrome</b> and <b>Edge</b>.</p></div>
-          <div data-p="1" hidden><ol>
+          </ol><p style="font-size:.85rem;color:var(--muted);margin-top:8px">Works in <b>Chrome</b> and <b>Edge</b>.</p>`],
+      ["folder", "Method 2: Drag &amp; drop", `<ol>
             <li>Plug in the micro:bit. A drive called <b>MICROBIT</b> appears on the computer.</li>
             <li>In MakeCode, click <b>Download</b>. A file ending in <b>.hex</b> is saved (usually in <b>Downloads</b>).</li>
             <li>Open <b>File Explorer</b>, find the .hex file and <b>drag it onto the MICROBIT drive</b>.</li>
             <li>The yellow light flashes while it copies. When it stops, your program runs.</li>
-          </ol><p style="font-size:.85rem;color:var(--muted);margin-top:8px">The MICROBIT drive disappears and comes back after copying. That's normal!</p></div>
-        </div>
+          </ol><p style="font-size:.85rem;color:var(--muted);margin-top:8px">The MICROBIT drive disappears and comes back after copying. That's normal!</p>`]);
+  };
+  /** Two tabs: [icon, title, html] for each download method. */
+  function downloadTabs(...methods) {
+    const t = h(`
+      <div class="tabs">
+        <div class="tabs-head" role="tablist">${methods.map(([ico, title], i) => `<button type="button" class="${i ? "" : "on"}" data-t="${i}">${I(ico)} ${title}</button>`).join("")}</div>
+        <div class="tabs-body">${methods.map(([, , html], i) => `<div data-p="${i}" ${i ? "hidden" : ""}>${html}</div>`).join("")}</div>
       </div>`);
     t.querySelectorAll(".tabs-head button").forEach(b => b.onclick = () => {
       t.querySelectorAll(".tabs-head button").forEach(x => x.classList.toggle("on", x === b));
       t.querySelectorAll("[data-p]").forEach(p => (p.hidden = p.dataset.p !== b.dataset.t));
     });
     return t;
-  };
+  }
 
   TOOLS.ledDesigner = (tool) => {
     const multi = !!tool.frames;
@@ -696,7 +754,8 @@
         if (!multi) return "from microbit import *\n\ndisplay.show(" + imgPy(frames[0]) + ")";
         return "from microbit import *\n\nframes = [\n" + frames.map(f => "    " + imgPy(f)).join(",\n") + "\n]\n\nwhile True:\n    display.show(frames, delay=" + Math.max(100, pauseMs + 400) + ")";
       }
-      if (!multi) return "basic.forever(function () {\n" + ledsJS(frames[0]).split("\n").map(l => "    " + l).join("\n") + "\n})";
+      // wrap: the event block the picture goes in, with % where the show leds block goes (default: forever)
+      if (!multi) return (tool.wrap || "basic.forever(function () {\n%\n})").replace("%", ledsJS(frames[0]).split("\n").map(l => "    " + l).join("\n"));
       const body = frames.map(f => ledsJS(f).split("\n").map(l => "    " + l).join("\n") + (pauseMs ? `\n    basic.pause(${pauseMs})` : "")).join("\n");
       return "basic.forever(function () {\n" + body + "\n})";
     }
@@ -730,7 +789,7 @@
 
   TOOLS.eventDemo = (tool) => {
     const t = h(`<div class="tool"><div class="tool-title">${I("gamepad-2")} ${esc(tool.title || "Try the finished project")}</div><div class="tool-grid"><div class="mb"></div><div class="info"></div></div></div>`);
-    const mb = new MiniBit(t.querySelector(".mb"), { shake: !!tool.map.shake, buttons: true, logo: true });
+    const mb = new MiniBit(t.querySelector(".mb"), { shake: !!tool.map.shake, ab: !!tool.map.AB, buttons: true, logo: true });
     const info = t.querySelector(".info");
     const labels = { A: "Press button A", B: "Press button B", logo: "Touch the logo", shake: "Shake it", AB: "Press A+B" };
     // Variables shown as labelled boxes next to the micro:bit, so students can watch them change.
@@ -823,7 +882,13 @@
       const body = el.querySelector(".step-body"), foot = el.querySelector(".step-foot"), extra = el.querySelector(".step-extra");
       if (s.html) body.appendChild(h(`<div>${rich(s.html)}</div>`));
       // pageCode: false keeps a snippet for the slides and teacher plan only (e.g. when a tool already shows live code)
-      if (s.code && s.pageCode !== false) body.appendChild(codePanel(s.code, { label: s.codeLabel, lang: s.lang }));
+      // blocks: the same program as MakeCode blocks, shown next to the Python. noCopy: students type the code themselves.
+      const copy = s.noCopy ? false : undefined;
+      if (s.blocks) {
+        const g = h(`<div class="compare-grid"></div>`);
+        g.append(codePanel(s.blocks, { label: "what you know" }), codePanel(s.code, { lang: s.lang, label: s.codeLabel || "the same in Python", copy }));
+        body.appendChild(g);
+      } else if (s.code && s.pageCode !== false) body.appendChild(codePanel(s.code, { label: s.codeLabel, lang: s.lang, copy }));
       if (s.tool) body.appendChild(TOOLS[s.tool.type](s.tool));
       if (s.tip) body.appendChild(h(`<div class="tip">${I("lightbulb")}<div><b>Tip:</b> ${rich(s.tip)}</div></div>`));
       if (s.warn) body.appendChild(h(`<div class="warn">${I("triangle-alert")}<div><b>Watch out:</b> ${rich(s.warn)}</div></div>`));
@@ -1151,15 +1216,23 @@
   document.body.appendChild(foot);
 
   /* help drawer */
+  const PYTHON = L.editor === "python";
   const HELP = (L.help || []).concat([
     { q: "It says “Not saved yet” at the top", a: "The internet connection dropped. Keep working: the page keeps trying and saves everything when the connection comes back. Wait for <b>Saved</b> before you close the page." },
-    { q: "I forgot my ID or password", a: "Ask your teacher: they can find your ID and give you a new password." },
-    { q: "The Download button doesn't send my program to the micro:bit", a: "Use <b>Chrome</b> or <b>Edge</b>. Click the three dots <b>⋯</b> next to Download, choose <b>Connect device</b> and follow the steps. Still stuck? Use drag &amp; drop: download the .hex file and drag it onto the <b>MICROBIT</b> drive." },
+    { q: "I forgot my ID or password", a: "Ask your teacher: they can find your ID and give you a new password." }
+  ], PYTHON ? [] : [
+    { q: "The Download button doesn't send my program to the micro:bit", a: "Use <b>Chrome</b> or <b>Edge</b>. Click the three dots <b>⋯</b> next to Download, choose <b>Connect device</b> and follow the steps. Still stuck? Use drag &amp; drop: download the .hex file and drag it onto the <b>MICROBIT</b> drive." }
+  ], [
     { q: "The computer can't find my micro:bit", a: "Unplug the cable and plug it back in. Try another USB port. Some cables can only charge and can't send programs: ask your teacher for another cable." },
-    { q: "It works in the simulator but not on the micro:bit", a: "You probably forgot to <b>download again</b> after your last change. Every time you change the code, download it again." },
+    { q: "It works in the simulator but not on the micro:bit", a: PYTHON ? "You probably forgot to <b>send it again</b> after your last change. Every time you change the code, click <b>Send to micro:bit</b> again." : "You probably forgot to <b>download again</b> after your last change. Every time you change the code, download it again." }
+  ], PYTHON ? [
+    { q: "The micro:bit scrolls an error message", a: "Python found a problem while the program was running. Read the <b>line number</b> in the message, fix that line in the editor, then send the program again." },
+    { q: "Nothing happens on the micro:bit", a: "Is the red light on the back on? Press the <b>reset button</b> on the back. Check that the editor shows no <b>red dots</b>, then send the program again." }
+  ] : [
     { q: "The micro:bit shows a sad face and a number", a: "Something went wrong in the program. Download it again. If it keeps happening, tell your teacher the number." },
     { q: "Nothing happens on the micro:bit", a: "Is the red light on the back on? Press the <b>reset button</b> on the back. Check that your blocks are inside <b>on start</b> or <b>forever</b>." },
-    { q: "Some of my blocks are grey / faded", a: "A faded block is not connected, so it will never run. Drag it until it <b>clicks</b> inside another block." },
+    { q: "Some of my blocks are grey / faded", a: "A faded block is not connected, so it will never run. Drag it until it <b>clicks</b> inside another block." }
+  ], [
     { q: "I deleted something by mistake", a: "Press <kbd>Ctrl</kbd> + <kbd>Z</kbd> to undo." },
     { q: "The battery pack doesn't work", a: "Check the switch on the battery pack is <b>ON</b> and the plug is pushed all the way into the battery socket. At the end of the lesson, switch it <b>OFF</b> to save the batteries." }
   ]);
