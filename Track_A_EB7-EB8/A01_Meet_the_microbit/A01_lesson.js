@@ -4,7 +4,7 @@ window.LESSON = {
   id: "A1", track: "A", trackLabel: "Track A · Explorers", grades: "EB7 – EB8", number: 1,
   title: "Meet the micro:bit",
   mission: "Meet a tiny computer and program it to become your group's <b>name badge</b>.",
-  chips: ["⏱ 60 minutes", "👥 Group work", "🧩 MakeCode blocks"],
+  chips: ["clock:60 minutes", "users:Group work", "puzzle:MakeCode blocks"],
   rotateMinutes: 12,
   objectives: [
     "explain that a computer takes an {{input}}, {{processes|process}} it and gives an {{output}}.",
@@ -27,19 +27,19 @@ window.LESSON = {
       id: "warmup", type: "sort", nav: "Warm-up", title: "Warm-up: Input, Process or Output?", minutes: 6, kind: "Unplugged",
       intro: "<p>Every computer does three things: it takes information <b>in</b>, it <b>thinks</b> about it, and it gives information <b>out</b>. Sort these parts of an everyday computer.</p>",
       buckets: [
-        { id: "in", label: "Input", emoji: "⬇️", desc: "Information goes IN" },
-        { id: "proc", label: "Process", emoji: "🧠", desc: "The computer THINKS" },
-        { id: "out", label: "Output", emoji: "⬆️", desc: "Information comes OUT" }
+        { id: "in", label: "Input", icon: "arrow-down-to-line", desc: "Information goes IN" },
+        { id: "proc", label: "Process", icon: "brain-circuit", desc: "The computer THINKS" },
+        { id: "out", label: "Output", icon: "arrow-up-from-line", desc: "Information comes OUT" }
       ],
       items: [
-        { label: "Keyboard", emoji: "⌨️", bucket: "in", why: "You type on it to send information INTO the computer." },
-        { label: "Screen", emoji: "🖥️", bucket: "out", why: "It shows information OUT to you." },
-        { label: "Mouse", emoji: "🖱️", bucket: "in", why: "Moving and clicking sends information INTO the computer." },
-        { label: "Processor (CPU)", emoji: "🧠", bucket: "proc", why: "The processor is the brain. It follows the program and does the thinking." },
-        { label: "Speaker", emoji: "🔊", bucket: "out", why: "Sound comes OUT of it." },
-        { label: "Microphone", emoji: "🎤", bucket: "in", why: "It takes sound INTO the computer." },
-        { label: "Printer", emoji: "🖨️", bucket: "out", why: "It puts information OUT onto paper." },
-        { label: "Camera", emoji: "📷", bucket: "in", why: "It takes pictures INTO the computer." }
+        { label: "Keyboard", icon: "keyboard", bucket: "in", why: "You type on it to send information INTO the computer." },
+        { label: "Screen", icon: "monitor", bucket: "out", why: "It shows information OUT to you." },
+        { label: "Mouse", icon: "mouse", bucket: "in", why: "Moving and clicking sends information INTO the computer." },
+        { label: "Processor (CPU)", icon: "cpu", bucket: "proc", why: "The processor is the brain. It follows the program and does the thinking." },
+        { label: "Speaker", icon: "speaker", bucket: "out", why: "Sound comes OUT of it." },
+        { label: "Microphone", icon: "mic", bucket: "in", why: "It takes sound INTO the computer." },
+        { label: "Printer", icon: "printer", bucket: "out", why: "It puts information OUT onto paper." },
+        { label: "Camera", icon: "camera", bucket: "in", why: "It takes pictures INTO the computer." }
       ],
       success: "A computer = <b>input → process → output</b>. The micro:bit works in exactly the same way!"
     },
@@ -74,7 +74,7 @@ window.LESSON = {
       ],
       answer: 1,
       demo: [["scroll", "Hi!"], ["loop", 6, [["icon", "Heart"], ["icon", "SmallHeart"]]]],
-      explain: "<b>on start</b> ran once: it scrolled <b>Hi!</b>. Then <b>forever</b> kept switching between the big heart and the small heart, so the heart looks like it is beating. 💓"
+      explain: "<b>on start</b> ran once: it scrolled <b>Hi!</b>. Then <b>forever</b> kept switching between the big heart and the small heart, so the heart looks like it is beating."
     },
     {
       id: "mission", type: "mission", nav: "Mission: name badge", title: "Mission: Name badge", minutes: 22,
@@ -118,7 +118,7 @@ window.LESSON = {
           checkLabel: "Our badge works on the real micro:bit!"
         },
         {
-          title: "Go wireless 🔋",
+          title: "Go wireless",
           html: "<p>Unplug the USB cable and plug in the <b>battery pack</b> (switch it ON). Your program is saved on the micro:bit, so it starts again by itself! Walk around and show your badge to another group.</p>",
           tip: "The program stays on the micro:bit even when the power is off, until you download a new one.",
           checkLabel: "It works on battery power"
@@ -197,7 +197,7 @@ window.LESSON = {
       ]
     },
     {
-      id: "next", type: "next", nav: "Next lesson", title: "Next lesson", emoji: "💓",
+      id: "next", type: "next", nav: "Next lesson", title: "Next lesson", icon: "heart-pulse",
       lesson: "A2 · Algorithms & animation",
       teaser: "Find out what an algorithm is, then make a beating heart and your own animated emoji."
     }

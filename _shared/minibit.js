@@ -132,7 +132,7 @@
         const b = document.createElement("button");
         b.className = "btn small";
         b.type = "button";
-        b.innerHTML = "📳 Shake";
+        b.innerHTML = (window.MBIcon ? window.MBIcon("vibrate") : "") + " Shake";
         b.addEventListener("click", () => { this._wobble(); this._emit("shake"); });
         this.controls.appendChild(b);
       }

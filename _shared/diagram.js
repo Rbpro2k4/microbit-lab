@@ -126,6 +126,8 @@
   /**
    * opts: { required: number|"all", speedrun: boolean, onProgress(found, total, complete), saved: [ids] , teacher }
    */
+  const ic = (name, cls) => (window.MBIcon ? window.MBIcon(name, cls) : "");
+
   function MicrobitExplorer(container, opts = {}) {
     const parts = PARTS;
     const found = new Set(opts.saved || []);
@@ -157,15 +159,15 @@
       const p = parts.find(x => x.id === active);
       let html = "";
       if (!p) {
-        html = `<h3>🔍 Explore!</h3><p>Click the <b style="color:#b38600">yellow dots</b> to discover each part of the micro:bit. Don't forget to flip it over and look at the <b>back</b>.</p>`;
-        if (opts.speedrun) html += `<div class="tip"><b>⏱ Speed run:</b> the stopwatch starts when you click your first dot. Can your group find all ${parts.length} parts in under 3 minutes?</div>`;
+        html = `<h3>${ic("search")} Explore!</h3><p>Click the <b style="color:#b38600">yellow dots</b> to discover each part of the micro:bit. Don't forget to flip it over and look at the <b>back</b>.</p>`;
+        if (opts.speedrun) html += `<div class="tip">${ic("timer")}<div><b>Speed run:</b> the stopwatch starts when you click your first dot. Can your group find all ${parts.length} parts in under 3 minutes?</div></div>`;
       } else {
         const tags = p.tags.map(t => `<span class="tag ${TAG_LABEL[t][0]}">${TAG_LABEL[t][1]}</span>`).join("") + (p.v2 ? `<span class="tag v2">NEW IN V2</span>` : "");
         html = `<div>${tags}</div><h3>${p.name}</h3><p>${p.desc}</p>`;
       }
-      const list = parts.map(x => `<button type="button" data-id="${x.id}" class="${found.has(x.id) ? "found" : ""}">${found.has(x.id) ? "✓ " + x.name : "?"}</button>`).join("");
+      const list = parts.map(x => `<button type="button" data-id="${x.id}" class="${found.has(x.id) ? "found" : ""}">${found.has(x.id) ? ic("check") + " " + x.name : "?"}</button>`).join("");
       html += `<div class="part-list" aria-label="Parts found">${list}</div>`;
-      if (opts.speedrun) html += `<p style="margin-top:12px;font-weight:600">⏱ Time: <span class="stopwatch">${fmt(elapsed())}</span>${opts.best ? ` &nbsp;·&nbsp; Best: <span class="stopwatch">${fmt(opts.best)}</span>` : ""}</p>`;
+      if (opts.speedrun) html += `<p style="margin-top:12px;font-weight:600">${ic("timer")} Time: <span class="stopwatch">${fmt(elapsed())}</span>${opts.best ? ` &nbsp;·&nbsp; Best: <span class="stopwatch">${fmt(opts.best)}</span>` : ""}</p>`;
       info.innerHTML = html;
       info.querySelectorAll(".part-list button.found").forEach(b => b.addEventListener("click", () => {
         const pp = parts.find(x => x.id === b.dataset.id); if (pp.side !== side) { side = pp.side; drawSide(); } select(pp.id);

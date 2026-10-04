@@ -3,7 +3,7 @@
 window.MB_CLASSES = { EB7: "A", EB8: "A", EB9: "B", Second: "B" };
 window.MB_TRACKS = {
   A: {
-    name: "Track A · Explorers", grades: "EB7 – EB8", sub: "MakeCode blocks", emoji: "🧭",
+    name: "Track A · Explorers", grades: "EB7 – EB8", sub: "MakeCode blocks", icon: "compass",
     lessons: [
       { id: "A1", title: "Meet the micro:bit", week: 1, folder: "Track_A_EB7-EB8/A01_Meet_the_microbit", file: "A01" },
       { id: "A2", title: "Algorithms & animation", week: 2, folder: "Track_A_EB7-EB8/A02_Algorithms_and_animation", file: "A02" },
@@ -18,7 +18,7 @@ window.MB_TRACKS = {
     ]
   },
   B: {
-    name: "Track B · Engineers", grades: "EB9 – Second", sub: "Blocks, then Python", emoji: "🛠️",
+    name: "Track B · Engineers", grades: "EB9 – Second", sub: "Blocks, then Python", icon: "wrench",
     lessons: [
       { id: "B1", title: "Crash course: meet the micro:bit", week: 1, folder: "Track_B_EB9-Seconde/B01_Crash_course", file: "B01" },
       { id: "B2", title: "Logic in blocks", week: 2, folder: "Track_B_EB9-Seconde/B02_Logic_in_blocks", file: "B02" },

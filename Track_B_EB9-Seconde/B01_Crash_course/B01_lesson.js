@@ -4,7 +4,7 @@ window.LESSON = {
   id: "B1", track: "B", trackLabel: "Track B · Engineers", grades: "EB9 – Seconde", number: 1,
   title: "Crash course: meet the micro:bit",
   mission: "Get to know the micro:bit fast, then build <b>three programs</b> in one lesson: a name badge, an animation and an emotion badge.",
-  chips: ["⏱ 60 minutes", "👥 Group work", "🧩 MakeCode blocks", "⚡ Fast pace"],
+  chips: ["clock:60 minutes", "users:Group work", "puzzle:MakeCode blocks", "zap:Fast pace"],
   rotateMinutes: 12,
   objectives: [
     "explain {{input}}, {{process}} and {{output}} using parts of the micro:bit.",
@@ -24,20 +24,20 @@ window.LESSON = {
       id: "warmup", type: "sort", nav: "Warm-up", title: "Warm-up: Input, Output or Both?", minutes: 4, kind: "Unplugged",
       intro: "<p>Computers follow the pattern <b>input → process → output</b>. Sort these micro:bit parts. One or two of them might surprise you!</p>",
       buckets: [
-        { id: "in", label: "Input", emoji: "⬇️", desc: "Senses the world" },
-        { id: "out", label: "Output", emoji: "⬆️", desc: "Acts on the world" },
-        { id: "both", label: "Both", emoji: "↕️", desc: "Can do both jobs" }
+        { id: "in", label: "Input", icon: "arrow-down-to-line", desc: "Senses the world" },
+        { id: "out", label: "Output", icon: "arrow-up-from-line", desc: "Acts on the world" },
+        { id: "both", label: "Both", icon: "arrow-down-up", desc: "Can do both jobs" }
       ],
       items: [
-        { label: "Button A", emoji: "🔘", bucket: "in", why: "Pressing it sends a signal INTO the micro:bit." },
-        { label: "Speaker", emoji: "🔊", bucket: "out", why: "It produces sound: an output." },
-        { label: "Accelerometer", emoji: "📳", bucket: "in", why: "It senses movement (shake, tilt): an input." },
-        { label: "Radio antenna", emoji: "📡", bucket: "both", why: "It SENDS messages (output) and RECEIVES them (input)." },
-        { label: "Touch logo", emoji: "👆", bucket: "in", why: "It senses your finger: an input." },
-        { label: "Red power light", emoji: "🔴", bucket: "out", why: "It gives out light: an output." },
-        { label: "Microphone", emoji: "🎤", bucket: "in", why: "It measures sound level: an input." },
-        { label: "LED display", emoji: "💡", bucket: "both", why: "Surprise! It shows pictures (output) AND can measure light level (input)." },
-        { label: "Temperature sensor", emoji: "🌡️", bucket: "in", why: "It measures temperature: an input." }
+        { label: "Button A", icon: "circle-dot", bucket: "in", why: "Pressing it sends a signal INTO the micro:bit." },
+        { label: "Speaker", icon: "speaker", bucket: "out", why: "It produces sound: an output." },
+        { label: "Accelerometer", icon: "vibrate", bucket: "in", why: "It senses movement (shake, tilt): an input." },
+        { label: "Radio antenna", icon: "radio-tower", bucket: "both", why: "It SENDS messages (output) and RECEIVES them (input)." },
+        { label: "Touch logo", icon: "pointer", bucket: "in", why: "It senses your finger: an input." },
+        { label: "Red power light", icon: "power", bucket: "out", why: "It gives out light: an output." },
+        { label: "Microphone", icon: "mic", bucket: "in", why: "It measures sound level: an input." },
+        { label: "LED display", icon: "grid-3x3", bucket: "both", why: "Surprise! It shows pictures (output) AND can measure light level (input)." },
+        { label: "Temperature sensor", icon: "thermometer", bucket: "in", why: "It measures temperature: an input." }
       ],
       success: "Inputs <b>sense</b>, outputs <b>act</b>. The radio and the LED display can do both!"
     },
@@ -66,7 +66,7 @@ window.LESSON = {
           checkLabel: "It runs on the real micro:bit"
         },
         {
-          title: "Go wireless 🔋",
+          title: "Go wireless",
           html: "<p>Unplug the USB cable and connect the <b>battery pack</b>. The program is stored on the micro:bit and starts again by itself.</p>",
           checkLabel: "It works on battery power"
         },
@@ -158,7 +158,7 @@ window.LESSON = {
           checkLabel: "All 4 events work on the real micro:bit"
         },
         {
-          level: "ext", title: "Add sound effects 🔊",
+          level: "ext", title: "Add sound effects",
           html: "<p>The micro:bit V2 has a speaker. From <b>Music</b>, add a <b>play sound … in background</b> block to each event (giggle, sad, yawn, surprise…).</p>",
           code: "input.onButtonPressed(Button.A, function () {\n    basic.showIcon(IconNames.Happy)\n    music.play(music.builtinPlayableSoundEffect(soundExpression.giggle), music.PlaybackMode.InBackground)\n})",
           hints: ["Look for the block that says <b>play (giggle) in background</b> in <b>Music</b>."]
@@ -170,7 +170,7 @@ window.LESSON = {
           solution: "input.onButtonPressed(Button.AB, function () {\n    basic.clearScreen()\n})"
         },
         {
-          level: "chal", title: "React to noise 🎤",
+          level: "chal", title: "React to noise",
           html: "<p>Use the microphone: when there is a <b>loud sound</b> (a clap!), show a surprised face. When it becomes <b>quiet</b>, show the asleep face.</p>",
           hints: ["Look in <b>Input</b> for <b>on loud sound</b>.", "Click the dropdown in that block to change <b>loud</b> to <b>quiet</b> for the second event."],
           solution: "input.onSound(DetectedSound.Loud, function () {\n    basic.showIcon(IconNames.Surprised)\n})\ninput.onSound(DetectedSound.Quiet, function () {\n    basic.showIcon(IconNames.Asleep)\n})"
@@ -210,7 +210,7 @@ window.LESSON = {
       ]
     },
     {
-      id: "next", type: "next", nav: "Next lesson", title: "Next lesson", emoji: "✂️",
+      id: "next", type: "next", nav: "Next lesson", title: "Next lesson", icon: "scissors",
       lesson: "B2 · Logic in blocks",
       teaser: "Variables, decisions (if/else) and random numbers: build Rock-Paper-Scissors and a step counter. Then you're ready for Python!"
     }

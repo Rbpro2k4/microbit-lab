@@ -4,7 +4,7 @@ window.LESSON = {
   id: "B2", track: "B", trackLabel: "Track B · Engineers", grades: "EB9 – Seconde", number: 2,
   title: "Logic in blocks",
   mission: "Give your micro:bit a <b>memory</b> and a <b>brain</b>: a step counter that remembers with a variable, and a Rock-Paper-Scissors game that makes decisions.",
-  chips: ["⏱ 60 minutes", "👥 Group work", "🧩 MakeCode blocks", "🧠 Logic"],
+  chips: ["clock:60 minutes", "users:Group work", "puzzle:MakeCode blocks", "brain:Logic"],
   rotateMinutes: 12,
   objectives: [
     "use a {{variable}} to store a value and change it.",
@@ -39,9 +39,9 @@ window.LESSON = {
         { q: "What is shown?", code: "let lives = 3\nlives += -1\nif (lives == 0) {\n    basic.showString(\"GAME OVER\")\n} else {\n    basic.showNumber(lives)\n}", options: ["3", "2", "GAME OVER", "0"], answer: 1, explain: "lives goes from 3 to 2. 2 is not 0, so the <b>else</b> part shows the number 2." }
       ],
       bands: [
-        { min: 0, label: "🟢 Route: step by step", text: "Most of this is new, and that's fine: today's lesson is made for you. Follow every Core step and use the hints." },
-        { min: 2, label: "🟡 Route: Core + Extensions", text: "You already know some of this. Do the Core steps quickly, then try the Extensions." },
-        { min: 4, label: "🔴 Route: fast lane", text: "You read code well! Do the Core steps fast, then go for the Challenges and Mission 3 (reaction game)." }
+        { min: 0, level: "core", label: "Route: step by step", text: "Most of this is new, and that's fine: today's lesson is made for you. Follow every Core step and use the hints." },
+        { min: 2, level: "ext", label: "Route: Core + Extensions", text: "You already know some of this. Do the Core steps quickly, then try the Extensions." },
+        { min: 4, level: "chal", label: "Route: fast lane", text: "You read code well! Do the Core steps fast, then go for the Challenges and Mission 3 (reaction game)." }
       ]
     },
     {
@@ -204,7 +204,7 @@ window.LESSON = {
       ]
     },
     {
-      id: "next", type: "next", nav: "Next lesson", title: "Next lesson", emoji: "🐍",
+      id: "next", type: "next", nav: "Next lesson", title: "Next lesson", icon: "terminal",
       lesson: "B3 · Hello Python",
       teaser: "Time to type! Write your first programs in Python with the micro:bit Python Editor, and compare them with the blocks you know."
     }

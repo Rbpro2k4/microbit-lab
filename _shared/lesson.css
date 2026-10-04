@@ -578,6 +578,56 @@ footer.page-foot { text-align: center; color: var(--muted); font-size: .8rem; pa
 .modal h3 { margin: 16px 0 6px; font-size: 1rem; }
 @media (max-width: 760px) { .dash-panels { grid-template-columns: 1fr; } .acct .save-state { display: none; } }
 
+/* ---------- Icons (Lucide, see icons.js) ---------- */
+.ic { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; }
+.btn .ic { width: 1.05em; height: 1.05em; }
+.spin { animation: spin 1s linear infinite; }
+.big-ic { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft, #dff5f1); color: var(--accent, #0e9384); flex: none; }
+.big-ic .ic { width: 32px; height: 32px; }
+.id-card .big-ic, .auth-closed .big-ic, .empty-state .big-ic { margin: 0 auto 12px; }
+.next-card .big-ic { width: 56px; height: 56px; }
+.next-card .big-ic .ic { width: 28px; height: 28px; }
+.lv-dot { display: inline-block; width: .62em; height: .62em; border-radius: 50%; margin-right: .45em; background: var(--muted); vertical-align: .04em; flex: none; }
+.lv-dot.core { background: var(--ok); }
+.lv-dot.ext { background: var(--ext); }
+.lv-dot.chal { background: var(--bad); }
+.live-dot { display: inline-block; width: .55em; height: .55em; border-radius: 50%; background: currentColor; margin-right: .45em; vertical-align: .05em; }
+.ring { display: inline-block; width: 1em; height: 1em; border: 2px solid var(--line); border-radius: 50%; vertical-align: -.15em; }
+.icon-link { display: inline-flex; align-items: center; gap: 6px; }
+.hero .mission { display: flex; gap: 10px; align-items: flex-start; }
+.hero .mission > .ic { width: 1.35em; height: 1.35em; margin-top: .1em; opacity: .9; }
+.hero .chip-static { display: inline-flex; align-items: center; gap: 6px; }
+.chip .emo .ic, .bucket-head .emo .ic, .order-item .emo .ic { width: 1.3rem; height: 1.3rem; color: var(--accent); vertical-align: -0.3em; }
+.role .ico .ic { width: 14px; height: 14px; color: var(--accent); }
+.card-head .num .ic { width: 18px; height: 18px; }
+.badge-done .ic { width: .95em; height: .95em; }
+.tip, .warn, .hint { display: flex; gap: 10px; align-items: flex-start; }
+.tip > .ic, .warn > .ic, .hint > .ic { width: 1.2em; height: 1.2em; margin-top: .15em; }
+.tip > .ic { color: var(--info); }
+.warn > .ic { color: var(--bad); }
+.hint > .ic { color: #b38600; }
+.feedback .ic { margin-right: 2px; }
+.feedback.ok > .ic { color: var(--ok); }
+.feedback.bad > .ic { color: var(--bad); }
+.toast { display: flex; align-items: center; gap: 8px; }
+.toast .ic { width: 1.1em; height: 1.1em; }
+.save-state .ico { display: inline-flex; }
+.save-state .ico .ic { width: 1.05em; height: 1.05em; }
+.acct-btn .avatar .ic { width: 16px; height: 16px; }
+.avatar.big .ic { width: 28px; height: 28px; }
+.acct-menu .ic { width: 1.05em; height: 1.05em; margin-right: 8px; vertical-align: -0.18em; color: var(--muted); }
+.acct-menu .danger .ic { color: var(--bad); }
+.caret .ic { width: 14px; height: 14px; }
+.track-card h2 .ic, .tool-title .ic { color: var(--accent); }
+.order-item .grip .ic { width: 16px; height: 16px; }
+.rstep .ic { width: 1em; height: 1em; }
+.det-list .ic { color: var(--ok); }
+.det-quiz .ic { width: 1em; height: 1em; }
+.dash-table .locked .ic { color: var(--ext); }
+.dash-table .g .ic { width: .95em; height: .95em; color: var(--accent); }
+.dash-table .acts .btn { padding: .35em .55em; }
+.ask3 b .ic { color: var(--accent); }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 980px) {
   .layout { grid-template-columns: minmax(0, 1fr); }

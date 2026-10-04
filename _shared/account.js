@@ -10,6 +10,7 @@
   function h(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
   const firstName = name => String(name || "").split(" ")[0];
+  const ic = (name, cls) => (window.MBIcon ? window.MBIcon(name, cls) : "");
   /** "eb7 14", "EB7014", "eb7-014" -> "EB7-014" */
   function normalizeId(raw) {
     const s = String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -148,12 +149,12 @@
     const m = h(`
       <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="grp-title">
         <div class="modal">
-          <h2 id="grp-title">👥 Your group</h2>
+          <h2 id="grp-title">${ic("users")} Your group</h2>
           <p class="lead">Working together on this computer? Add your teammates' IDs. Everything your group does is saved to <b>everyone's</b> account.</p>
           <div class="grp-list"></div>
           <form class="grp-add row" autocomplete="off">
             <label class="field" style="flex:1;min-width:160px">Teammate's ID<input name="mate" placeholder="e.g. ${esc(me.id.slice(0, 4))}014" maxlength="12"></label>
-            <button type="submit" class="btn primary" style="align-self:flex-end">＋ Add</button>
+            <button type="submit" class="btn primary" style="align-self:flex-end">${ic("plus")} Add</button>
           </form>
           <p class="grp-msg feedback"></p>
           <div class="row" style="margin-top:14px"><button type="button" class="btn primary" data-act="done">Done</button></div>
@@ -164,7 +165,7 @@
     const show = (text, kind) => { msg.className = "grp-msg feedback show " + kind; msg.textContent = text; };
     function draw() {
       list.innerHTML = [`<div class="grp-row me"><span class="avatar">${esc(firstName(me.name)[0] || "?")}</span><b>${esc(me.name)}</b><span class="id">${esc(me.id)}</span><span class="tag-you">you</span></div>`]
-        .concat(team.map(t => `<div class="grp-row"><span class="avatar">${esc(firstName(t.name)[0] || "?")}</span><b>${esc(t.name)}</b><span class="id">${esc(t.id)}</span><button type="button" class="btn small ghost" data-rm="${esc(t.id)}" aria-label="Remove ${esc(t.name)}">✕</button></div>`)).join("");
+        .concat(team.map(t => `<div class="grp-row"><span class="avatar">${esc(firstName(t.name)[0] || "?")}</span><b>${esc(t.name)}</b><span class="id">${esc(t.id)}</span><button type="button" class="btn small ghost" data-rm="${esc(t.id)}" aria-label="Remove ${esc(t.name)}">${ic("x")}</button></div>`)).join("");
       list.querySelectorAll("[data-rm]").forEach(b => b.onclick = () => save(team.filter(t => t.id !== b.dataset.rm).map(t => t.id)));
     }
     async function save(ids) {
@@ -177,7 +178,7 @@
       if (!id) return show("IDs look like EB7-014. Check the ID on your teammate's worksheet.", "bad");
       if (id === me.id) return show("That's your own ID!", "bad");
       if (team.some(t => t.id === id)) return show("Already in your group.", "info");
-      if (await save(team.map(t => t.id).concat(id))) { input.value = ""; show(`Added ${team[team.length - 1].name}. 👋`, "ok"); }
+      if (await save(team.map(t => t.id).concat(id))) { input.value = ""; show(`Added ${team[team.length - 1].name}.`, "ok"); }
       input.focus();
     };
     const close = () => { m.remove(); if (onDone) onDone(team); };

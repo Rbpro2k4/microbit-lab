@@ -7,6 +7,7 @@
   const L = window.LESSON;
   if (!L) { document.body.textContent = "LESSON data missing."; return; }
   const ACC = window.MBAccount;
+  const I = (name, cls) => (window.MBIcon ? window.MBIcon(name, cls) : ""); // Lucide icon as an <svg> string
   const { ICONS, toMatrix, ledThumb } = window.MiniBitUtil;
   document.body.classList.add("track-" + L.track);
 
@@ -20,7 +21,7 @@
   if (session.mode === "redirect") return;
   if (session.mode === "wrong-track") {
     const other = L.track === "A" ? "Track A (EB7 – EB8)" : "Track B (EB9 – Second)";
-    document.body.innerHTML = `<main class="portal"><section class="card id-card"><div class="big-emo">🧭</div><h2>This lesson is for ${other}</h2><p>Your class, ${session.user.class}, has its own lessons.</p><a class="btn primary big" href="${(L.portal || "../../index.html")}">Go to my lessons</a></section></main>`;
+    document.body.innerHTML = `<main class="portal"><section class="card id-card"><div class="big-ic">${I("compass")}</div><h2>This lesson is for ${other}</h2><p>Your class, ${session.user.class}, has its own lessons.</p><a class="btn primary big" href="${(L.portal || "../../index.html")}">Go to my lessons</a></section></main>`;
     return;
   }
   const TEACHER = session.mode === "teacher";
@@ -72,9 +73,17 @@
 
   /* ---------------- toasts ---------------- */
   const toastWrap = h(`<div class="toast-wrap" aria-live="polite"></div>`);
-  function toast(msg, ms = 2600) {
-    const t = h(`<div class="toast"></div>`); t.textContent = msg; toastWrap.appendChild(t);
+  function toast(msg, ms = 2600, icon) {
+    const t = h(`<div class="toast">${icon ? I(icon) : ""}<span></span></div>`);
+    t.querySelector("span").textContent = msg; toastWrap.appendChild(t);
     setTimeout(() => t.remove(), ms);
+  }
+  /** Gives tip and warning boxes written in lesson text their icon. */
+  function decorate(root) {
+    root.querySelectorAll(".tip, .warn").forEach(el => {
+      if (el.querySelector(":scope > svg.ic")) return;
+      el.innerHTML = I(el.classList.contains("warn") ? "triangle-alert" : "lightbulb") + "<div>" + el.innerHTML + "</div>";
+    });
   }
 
   /* ---------------- MakeCode block renderer ---------------- */
@@ -122,7 +131,7 @@
     ta.remove(); return Promise.resolve();
   }
   function addCopy(bar, getCode) {
-    const b = h(`<button type="button" class="btn small ghost">📋 Copy</button>`);
+    const b = h(`<button type="button" class="btn small ghost">${I("copy")} Copy</button>`);
     b.onclick = () => copyText(typeof getCode === "function" ? getCode() : getCode).then(() => toast("Copied!"));
     bar.appendChild(b);
   }
@@ -130,7 +139,7 @@
   /** Code panel. lang: "blocks" (MakeCode JS rendered as blocks) or "python". */
   function codePanel(code, opt = {}) {
     const lang = opt.lang || "blocks";
-    const box = h(`<div class="code-panel"><div class="bar"><span>${lang === "python" ? "🐍 Python" : "🧩 MakeCode blocks"}</span>${opt.label ? `<span>· ${esc(opt.label)}</span>` : ""}<span class="spacer"></span></div><div class="cp-body"></div></div>`);
+    const box = h(`<div class="code-panel"><div class="bar"><span>${lang === "python" ? I("terminal") + " Python" : I("puzzle") + " MakeCode blocks"}</span>${opt.label ? `<span>· ${esc(opt.label)}</span>` : ""}<span class="spacer"></span></div><div class="cp-body"></div></div>`);
     const bar = box.querySelector(".bar"), body = box.querySelector(".cp-body");
     let current = code;
     if (lang === "python") {
@@ -142,7 +151,7 @@
     const blocks = h(`<div class="blocks"><div class="loading"><span class="spinner"></span> Loading blocks…</div></div>`);
     const js = pre(code); js.hidden = true;
     body.appendChild(blocks); body.appendChild(js);
-    const tgl = h(`<button type="button" class="btn small ghost" title="Show the same code as JavaScript">{ } JavaScript</button>`);
+    const tgl = h(`<button type="button" class="btn small ghost" title="Show the same code as JavaScript">${I("code")} JavaScript</button>`);
     tgl.onclick = () => { js.hidden = !js.hidden; tgl.classList.toggle("primary", !js.hidden); };
     bar.appendChild(tgl);
     if (TEACHER || opt.copy) addCopy(bar, () => current);
@@ -158,7 +167,7 @@
           if (m.width) { img.style.width = Math.round(m.width * (opt.scale || 0.9)) + "px"; }
           blocks.replaceChildren(img);
         } else {
-          blocks.replaceChildren(h(`<div class="loading">⚠️ Blocks need an internet connection. Here is the same code as JavaScript: paste it into MakeCode's JavaScript tab, then switch back to Blocks.</div>`));
+          blocks.replaceChildren(h(`<div class="loading">${I("wifi-off")} Blocks need an internet connection. Here is the same code as JavaScript: paste it into MakeCode's JavaScript tab, then switch back to Blocks.</div>`));
           js.hidden = false; tgl.classList.add("primary");
         }
       });
@@ -193,11 +202,11 @@
 
   /* ---------------- group roles ---------------- */
   const ROLE = {
-    driver: { ico: "🖱️", name: "Driver", desc: "Uses the mouse and keyboard to build the code." },
-    navigator: { ico: "🧭", name: "Navigator", desc: "Reads the steps out loud and helps the driver spot mistakes." },
-    hardware: { ico: "🔌", name: "Hardware boss", desc: "Looks after the micro:bit, cable and battery pack. Downloads and tests on the real micro:bit." },
-    reporter: { ico: "📝", name: "Reporter", desc: "Ticks off the steps, fills in the worksheet and is the only one who calls the teacher." },
-    tester: { ico: "🧪", name: "Tester", desc: "Tries the program and looks for bugs." }
+    driver: { ico: "mouse-pointer-click", name: "Driver", desc: "Uses the mouse and keyboard to build the code." },
+    navigator: { ico: "compass", name: "Navigator", desc: "Reads the steps out loud and helps the driver spot mistakes." },
+    hardware: { ico: "plug", name: "Hardware boss", desc: "Looks after the micro:bit, cable and battery pack. Downloads and tests on the real micro:bit." },
+    reporter: { ico: "notebook-pen", name: "Reporter", desc: "Ticks off the steps, fills in the worksheet and is the only one who calls the teacher." },
+    tester: { ico: "flask-conical", name: "Tester", desc: "Tries the program and looks for bugs." }
   };
   const ROTATE_MS = (L.rotateMinutes || 12) * 60000;
   function loadGroup() { try { return JSON.parse(localStorage.getItem(GKEY)) || null; } catch (e) { return null; } }
@@ -229,18 +238,18 @@
   const brandSvg = `<svg viewBox="0 0 24 24" aria-hidden="true">${[0, 1, 2].map(r => [0, 1, 2].map(c => `<circle cx="${6 + c * 6}" cy="${6 + r * 6}" r="2.1" fill="#fff" opacity="${(r + c) % 2 ? 1 : .55}"/>`).join("")).join("")}</svg>`;
   const top = h(`
     <header class="topbar">
-      ${TEACHER ? `<div class="teacher-banner">👩‍🏫 Teacher view: answers and solutions are shown</div>` : ""}
+      ${TEACHER ? `<div class="teacher-banner">${I("graduation-cap")} Teacher view: answers and solutions are shown</div>` : ""}
       <div class="topbar-inner">
         <a class="brand" href="${portalHref}" title="All lessons"><span class="brand-mark">${brandSvg}</span><span>micro:bit Lab</span></a>
         <div class="lesson-id"><span class="kicker">${esc(L.trackLabel)} · Lesson ${L.number}</span><span class="title">${esc(L.title)}</span></div>
         <div class="spacer"></div>
         <div class="progress-wrap"><span class="label">Progress</span><div class="progress-bar"><span></span></div><span class="pct">0%</span></div>
-        <div class="acct">${STUDENT ? `<span class="save-state" aria-live="polite" title="Saved to your account"><span class="ico">✓</span><span class="txt">Saved</span></span>` : ""}
-          ${STUDENT || TEACHER ? `<button type="button" class="acct-btn" aria-haspopup="menu" aria-expanded="false" title="Your account"><span class="avatar">${STUDENT ? esc(ACC.firstName(STUDENT.name)[0] || "?") : "👩‍🏫"}</span><span class="acct-label">${STUDENT ? esc(ACC.firstName(STUDENT.name)) : "Teacher"}</span><span class="caret">▾</span></button>`
-            : `<span class="save-state warn"><span class="ico">⚠</span><span class="txt">Not logged in</span></span>`}</div>
+        <div class="acct">${STUDENT ? `<span class="save-state" aria-live="polite" title="Saved to your account"><span class="ico">${I("cloud-check")}</span><span class="txt">Saved</span></span>` : ""}
+          ${STUDENT || TEACHER ? `<button type="button" class="acct-btn" aria-haspopup="menu" aria-expanded="false" title="Your account"><span class="avatar">${STUDENT ? esc(ACC.firstName(STUDENT.name)[0] || "?") : I("graduation-cap")}</span><span class="acct-label">${STUDENT ? esc(ACC.firstName(STUDENT.name)) : "Teacher"}</span><span class="caret">${I("chevron-down")}</span></button>`
+            : `<span class="save-state warn"><span class="ico">${I("wifi-off")}</span><span class="txt">Not logged in</span></span>`}</div>
       </div>
-      ${STUDENT && session.offline ? `<div class="net-banner">⚠️ The server can't be reached. Your work is kept on this computer and saved to your account when the connection comes back.</div>`
-        : !STUDENT && !TEACHER ? `<div class="net-banner">⚠️ The website's server can't be reached, so nobody is logged in: your work is saved on this computer only.</div>` : ""}
+      ${STUDENT && session.offline ? `<div class="net-banner">${I("wifi-off")} The server can't be reached. Your work is kept on this computer and saved to your account when the connection comes back.</div>`
+        : !STUDENT && !TEACHER ? `<div class="net-banner">${I("wifi-off")} The website's server can't be reached, so nobody is logged in: your work is saved on this computer only.</div>` : ""}
       <div class="roles"><div class="roles-inner"></div></div>
     </header>`);
   document.body.appendChild(top);
@@ -257,9 +266,9 @@
     const menu = h(`
       <div class="acct-menu" role="menu" hidden>
         <div class="acct-who">${STUDENT ? `<b>${esc(STUDENT.name)}</b><span>${esc(STUDENT.id)} · ${esc(STUDENT.class)}</span>` : `<b>Teacher</b><span>Answers are shown</span>`}</div>
-        <a role="menuitem" href="${portalHref}">🏠 My lessons</a>
-        ${STUDENT ? `<button type="button" role="menuitem" data-act="group">👥 My group</button>` : `<a role="menuitem" href="${homeDir}teacher.html">📊 Dashboard</a>`}
-        <button type="button" role="menuitem" data-act="logout" class="danger">🚪 Log out</button>
+        <a role="menuitem" href="${portalHref}">${I("house")} My lessons</a>
+        ${STUDENT ? `<button type="button" role="menuitem" data-act="group">${I("users")} My group</button>` : `<a role="menuitem" href="${homeDir}teacher.html">${I("layout-dashboard")} Dashboard</a>`}
+        <button type="button" role="menuitem" data-act="logout" class="danger">${I("log-out")} Log out</button>
       </div>`);
     top.querySelector(".acct").appendChild(menu);
     const setOpen = open => { menu.hidden = !open; acctBtn.setAttribute("aria-expanded", String(open)); };
@@ -282,8 +291,8 @@
   function renderRoles() {
     const a = assignments();
     top.classList.toggle("solo", TEACHER || (!!STUDENT && (group.names || []).length <= 1));
-    rolesInner.innerHTML = a.map(x => `<span class="role" title="${esc(x.role.desc)}"><span class="ico">${x.role.ico}</span><b>${x.role.name}</b>${x.who ? `<span class="who">${esc(x.who)}</span>` : ""}</span>`).join("") +
-      `<span class="role-timer"><span class="swap-label">Swap roles in</span><span class="clock">--:--</span><button type="button" class="btn small" data-act="rotate" title="Swap roles">↻<span class="btn-txt"> Swap</span></button><button type="button" class="btn small ghost" data-act="group" title="Group">👥<span class="btn-txt"> Group</span></button></span>`;
+    rolesInner.innerHTML = a.map(x => `<span class="role" title="${esc(x.role.desc)}"><span class="ico">${I(x.role.ico)}</span><b>${x.role.name}</b>${x.who ? `<span class="who">${esc(x.who)}</span>` : ""}</span>`).join("") +
+      `<span class="role-timer"><span class="swap-label">Swap roles in</span><span class="clock">--:--</span><button type="button" class="btn small" data-act="rotate" title="Swap roles">${I("rotate-cw")}<span class="btn-txt">Swap</span></button><button type="button" class="btn small ghost" data-act="group" title="Group">${I("users")}<span class="btn-txt">Group</span></button></span>`;
     rolesInner.querySelector('[data-act="rotate"]').onclick = rotate;
     rolesInner.querySelector('[data-act="group"]').onclick = openGroupModal;
     tick();
@@ -294,7 +303,7 @@
     group.rotateAt = Date.now() + ROTATE_MS;
     saveGroup(); dueNotified = false; renderRoles();
     const d = assignments()[0];
-    toast(d.who ? `New roles! ${d.role.ico} ${d.who} is now the Driver.` : "Swap roles now!");
+    toast(d.who ? `New roles! ${d.who} is now the Driver.` : "Swap roles now!", 2600, "rotate-cw");
   }
   function tick() {
     const timer = rolesInner.querySelector(".role-timer"); if (!timer) return;
@@ -303,7 +312,7 @@
     const left = group.rotateAt - Date.now();
     if (left <= 0) {
       clock.textContent = "NOW!"; timer.classList.add("due");
-      if (!dueNotified) { dueNotified = true; tones(SOUNDS.chime, "sine"); toast("⏰ Time to swap roles! Press ↻ Swap.", 5000); }
+      if (!dueNotified) { dueNotified = true; tones(SOUNDS.chime, "sine"); toast("Time to swap roles! Press Swap.", 5000, "alarm-clock"); }
     } else { clock.textContent = fmtTime(left); timer.classList.remove("due"); }
   }
   setInterval(tick, 1000);
@@ -314,7 +323,7 @@
         group.names = [STUDENT].concat(team).map(u => ACC.firstName(u.name));
         group.askedGroup = true;
         saveGroup(); renderRoles();
-        if (team.length) toast(`Saving for ${team.length + 1} students: ${group.names.join(", ")} 👋`);
+        if (team.length) toast(`Saving for ${team.length + 1} students: ${group.names.join(", ")}`, 2600, "users");
       });
       return;
     }
@@ -322,9 +331,9 @@
     const m = h(`
       <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="gm-title">
         <div class="modal">
-          <h2 id="gm-title">👥 Who is in your group?</h2>
+          <h2 id="gm-title">${I("users")} Who is in your group?</h2>
           <p class="lead">Type your first names. The page gives everyone a job and reminds you to swap jobs every ${L.rotateMinutes || 12} minutes.</p>
-          <div class="role-legend">${["driver", "navigator", "hardware", "reporter"].map(r => `<div>${ROLE[r].ico} <b>${ROLE[r].name}</b>${ROLE[r].desc}</div>`).join("")}</div>
+          <div class="role-legend">${["driver", "navigator", "hardware", "reporter"].map(r => `<div>${I(ROLE[r].ico)} <b>${ROLE[r].name}</b>${ROLE[r].desc}</div>`).join("")}</div>
           <div class="names">${[0, 1, 2, 3, 4].map(i => `<label class="field">Name ${i + 1}${i >= 2 ? " (optional)" : ""}<input data-i="${i}" maxlength="20" value="${esc(names[i] || "")}" autocomplete="off"></label>`).join("")}</div>
           <div class="row"><button type="button" class="btn primary" data-act="go">Start the lesson</button><button type="button" class="btn ghost" data-act="skip">Skip</button></div>
         </div>
@@ -336,7 +345,7 @@
       const list = [...m.querySelectorAll("input")].map(i => i.value.trim()).filter(Boolean);
       group = { names: list, rot: 0, rotateAt: Date.now() + ROTATE_MS, savedAt: Date.now() };
       saveGroup(); dueNotified = false; renderRoles(); close();
-      if (list.length) toast(`Welcome, ${list.join(", ")}! 👋`);
+      if (list.length) toast(`Welcome, ${list.join(", ")}!`, 2600, "hand");
     };
     m.querySelector('[data-act="skip"]').onclick = () => {
       group = group || { names: [], rot: 0 };
@@ -354,7 +363,7 @@
     if (done.has(id)) return;
     done.add(id); store.set("done", [...done]);
     updateProgress();
-    if (!silent) { tones(SOUNDS.ok, "sine"); toast("✓ Section complete!"); }
+    if (!silent) { tones(SOUNDS.ok, "sine"); toast("Section complete!", 2600, "circle-check"); }
   }
   /** What the dashboard and the home page show: % done and quiz scores. */
   function summary() {
@@ -377,12 +386,12 @@
   }
   if (STUDENT) {
     onStoreChange = () => ACC.queueSave(L.id, store.data, summary());
-    const labels = { saved: ["✓", "Saved"], saving: ["…", "Saving"], pending: ["…", "Saving"], error: ["⚠", "Not saved yet, retrying…"], loggedout: ["⚠", "Logged out: log in again to save"] };
+    const labels = { saved: ["cloud-check", "Saved"], saving: ["loader-circle", "Saving"], pending: ["loader-circle", "Saving"], error: ["triangle-alert", "Not saved yet, retrying…"], loggedout: ["log-out", "Logged out: log in again to save"] };
     ACC.onSaveState(state => {
       const el = top.querySelector(".save-state");
       if (!el) return;
       const [ico, txt] = labels[state] || ["", ""];
-      el.querySelector(".ico").textContent = ico;
+      el.querySelector(".ico").innerHTML = I(ico, ico === "loader-circle" ? "spin" : "");
       el.querySelector(".txt").textContent = txt;
       el.title = txt;
       el.className = "save-state" + (state === "error" || state === "loggedout" ? " warn" : state === "saved" ? "" : " busy");
@@ -405,8 +414,8 @@
         <div>
           <div class="kicker">${esc(L.trackLabel)} · ${esc(L.grades)} · Lesson ${L.number}</div>
           <h1>${esc(L.title)}</h1>
-          <p class="mission">🎯 ${rich(L.mission)}</p>
-          <div class="chips">${(L.chips || []).map(c => `<span class="chip-static">${c}</span>`).join("")}</div>
+          <p class="mission">${I("target")}<span>${rich(L.mission)}</span></p>
+          <div class="chips">${(L.chips || []).map(c => { const m = /^([a-z0-9-]+):(.*)$/.exec(c); return `<span class="chip-static">${m ? I(m[1]) + esc(m[2]) : esc(c)}</span>`; }).join("")}</div>
         </div>
         <div class="hero-mb"></div>
       </div>
@@ -432,9 +441,9 @@
     const c = h(`
       <section class="card" id="${sec.id}">
         <div class="card-head">
-          <div class="num">${num || (sec.type === "glossary" ? "Aa" : "→")}</div>
-          <div><h2>${esc(sec.title)}</h2><div class="meta">${sec.minutes ? `⏱ about ${sec.minutes} min` : ""}${sec.kind ? ` · ${esc(sec.kind)}` : ""}</div></div>
-          <span class="badge-done">✓ Done</span>
+          <div class="num">${num || (sec.type === "glossary" ? I("book-open") : I("arrow-right"))}</div>
+          <div><h2>${esc(sec.title)}</h2><div class="meta">${sec.minutes ? `${I("clock")} about ${sec.minutes} min` : ""}${sec.kind ? ` · ${esc(sec.kind)}` : ""}</div></div>
+          <span class="badge-done">${I("check")} Done</span>
         </div>
       </section>`);
     if (sec.intro) c.appendChild(h(`<div class="lead">${rich(sec.intro)}</div>`));
@@ -452,11 +461,11 @@
     const pool = h(`<div class="sort-pool" aria-label="Items to sort"></div>`);
     const bw = h(`<div class="buckets" style="--cols:${sec.buckets.length}"></div>`);
     const fb = h(`<div class="feedback" aria-live="polite"></div>`);
-    const btns = h(`<div class="row" style="margin-top:12px"><button type="button" class="btn primary" data-act="check">✔ Check</button><button type="button" class="btn ghost" data-act="reset">↺ Start again</button></div>`);
+    const btns = h(`<div class="row" style="margin-top:12px"><button type="button" class="btn primary" data-act="check">${I("check")} Check</button><button type="button" class="btn ghost" data-act="reset">${I("rotate-ccw")} Start again</button></div>`);
     c.append(h(`<p class="q" style="margin-top:6px">${rich(sec.how || "Click an item, then click the box where it belongs. (You can also drag.)")}</p>`), pool, bw, btns, fb);
     const bucketEls = {};
     sec.buckets.forEach(b => {
-      const e = h(`<div class="bucket" data-b="${b.id}" tabindex="0" role="button" aria-label="${esc(b.label)}"><div class="bucket-head"><span class="emo">${b.emoji || ""}</span>${esc(b.label)}</div><div class="bucket-desc">${rich(b.desc || "")}</div><div class="bucket-items"></div></div>`);
+      const e = h(`<div class="bucket" data-b="${b.id}" tabindex="0" role="button" aria-label="${esc(b.label)}"><div class="bucket-head"><span class="emo">${I(b.icon)}</span>${esc(b.label)}</div><div class="bucket-desc">${rich(b.desc || "")}</div><div class="bucket-items"></div></div>`);
       const drop = () => { if (selected != null) { st.place[selected] = b.id; selected = null; save(); draw(); } };
       e.addEventListener("click", ev => { if (!ev.target.closest(".chip")) drop(); });
       e.addEventListener("keydown", ev => { if ((ev.key === "Enter" || ev.key === " ") && !ev.target.closest(".chip")) { ev.preventDefault(); drop(); } });
@@ -472,7 +481,7 @@
     function draw(marks) {
       pool.innerHTML = ""; Object.values(bucketEls).forEach(e => (e.querySelector(".bucket-items").innerHTML = ""));
       sec.items.forEach((it, i) => {
-        const chip = h(`<button type="button" class="chip" draggable="true"><span class="emo">${it.emoji || ""}</span>${esc(it.label)}</button>`);
+        const chip = h(`<button type="button" class="chip" draggable="true"><span class="emo">${I(it.icon)}</span>${esc(it.label)}</button>`);
         if (selected === i) chip.classList.add("selected");
         if (marks && marks[i] != null) chip.classList.add(marks[i] ? "right" : "wrong");
         if (TEACHER && !marks) chip.title = "Answer: " + sec.buckets.find(b => b.id === it.bucket).label;
@@ -489,7 +498,7 @@
       const wrong = sec.items.filter((it, i) => !marks[i]);
       draw(marks);
       if (!wrong.length) {
-        fb.className = "feedback show ok"; fb.innerHTML = `🎉 <b>All correct!</b> ${rich(sec.success || "")}`; markDone(sec.id);
+        fb.className = "feedback show ok"; fb.innerHTML = `${I("party-popper")} <b>All correct!</b> ${rich(sec.success || "")}`; markDone(sec.id);
       } else {
         st.tries = (st.tries || 0) + 1; save();
         fb.className = "feedback show bad";
@@ -511,7 +520,7 @@
         if (time) {
           const best = store.get("best:" + sec.id, null);
           if (!best || time < best) store.set("best:" + sec.id, time);
-          toast(`🏁 All ${total} parts found in ${fmtTime(time)}!`, 4000);
+          toast(`All ${total} parts found in ${fmtTime(time)}!`, 4000, "flag");
         }
       }
     });
@@ -522,7 +531,7 @@
     const seen = new Set(store.get("tour:" + sec.id, []));
     const mock = h(`
       <div class="mc-mock" aria-label="Picture of the MakeCode editor">
-        <div class="mc-top"><span>🏠</span><b>MakeCode</b><div class="seg"><span class="on">Blocks</span><span>JavaScript</span><span>Python</span></div><span>⚙️</span></div>
+        <div class="mc-top"><span>${I("house")}</span><b>MakeCode</b><div class="seg"><span class="on">Blocks</span><span>JavaScript</span><span>Python</span></div><span>${I("settings")}</span></div>
         <div class="mc-body">
           <div class="mc-sim"></div>
           <div class="mc-tool">
@@ -530,7 +539,7 @@
           </div>
           <div class="mc-ws"><div class="mc-block">on start</div><br><div class="mc-block">forever</div></div>
         </div>
-        <div class="mc-bottom"><span class="mc-dl">⬇ Download</span><span>⋯</span><span class="mc-name">Name badge</span><span>💾</span></div>
+        <div class="mc-bottom"><span class="mc-dl">${I("download")} Download</span><span>⋯</span><span class="mc-name">Name badge</span><span>${I("save")}</span></div>
       </div>`);
     c.appendChild(mock);
     new MiniBit(mock.querySelector(".mc-sim"), {}).showIcon("Happy");
@@ -577,7 +586,7 @@
       buttons[i].classList.add(i === q.answer ? "right" : "wrong");
       if (i !== q.answer) buttons[q.answer].classList.add("right");
       fb.className = "feedback show " + (i === q.answer ? "ok" : "bad");
-      fb.innerHTML = (i === q.answer ? "✅ <b>Correct!</b> " : "❌ <b>Not quite.</b> ") + rich(q.explain || "");
+      fb.innerHTML = (i === q.answer ? I("circle-check") + " <b>Correct!</b> " : I("circle-x") + " <b>Not quite.</b> ") + rich(q.explain || "");
       if (fresh) { store.set(saveKey, i); onAnswer && onAnswer(i === q.answer, true); }
     }
     if (st != null) { choose(st, false); onAnswer && onAnswer(st === q.answer, false); }
@@ -590,13 +599,13 @@
     const left = grid.querySelector(".left"), right = grid.querySelector(".right");
     left.appendChild(codePanel(sec.code, { label: sec.codeLabel }));
     const mb = new MiniBit(right, { caption: "Virtual micro:bit", buttons: true, logo: true });
-    const ctr = h(`<div class="row" style="justify-content:center;margin-top:8px"><button type="button" class="btn primary" data-act="run" ${TEACHER ? "" : "disabled"}>▶ Run it</button><button type="button" class="btn ghost" data-act="stop">■ Stop</button></div>`);
+    const ctr = h(`<div class="row" style="justify-content:center;margin-top:8px"><button type="button" class="btn primary" data-act="run" ${TEACHER ? "" : "disabled"}>${I("play")} Run it</button><button type="button" class="btn ghost" data-act="stop">${I("square")} Stop</button></div>`);
     right.appendChild(ctr);
     const runBtn = ctr.querySelector('[data-act="run"]');
-    const lock = h(`<p class="caption" style="text-align:center;font-size:.82rem;color:var(--muted)">${TEACHER ? "" : "🔒 Make your prediction first!"}</p>`);
+    const lock = h(`<p class="caption" style="text-align:center;font-size:.82rem;color:var(--muted)">${TEACHER ? "" : I("lock") + " Make your prediction first!"}</p>`);
     right.appendChild(lock);
     const explain = h(`<div class="feedback info" style="margin-top:14px"></div>`);
-    left.appendChild(mcq({ q: sec.question, options: sec.options, answer: sec.answer, explain: sec.afterAnswer || "Now press ▶ Run it and check." }, "predict:" + sec.id, () => { runBtn.disabled = false; lock.textContent = "Press ▶ Run it to test your prediction."; }));
+    left.appendChild(mcq({ q: sec.question, options: sec.options, answer: sec.answer, explain: sec.afterAnswer || "Now press <b>Run it</b> and check." }, "predict:" + sec.id, () => { runBtn.disabled = false; lock.textContent = "Press Run it to test your prediction."; }));
     left.appendChild(explain);
     runBtn.onclick = async () => {
       runBtn.disabled = true;
@@ -610,7 +619,7 @@
   /* ---- tools ---- */
   const TOOLS = {};
   TOOLS.nameScroller = (tool) => {
-    const t = h(`<div class="tool"><div class="tool-title">👀 ${esc(tool.title || "Preview: how will it look on the micro:bit?")}</div><div class="tool-grid"><div class="mb"></div><div><label class="field">${esc(tool.label || "Type your name (English letters)")}<input maxlength="30" value="${esc(tool.value || "SARA")}"></label><div class="row" style="margin-top:10px"><button type="button" class="btn primary">▶ Play</button><span class="speed" style="font-size:.85rem;color:var(--muted)"></span></div><p class="warnmsg" style="font-size:.85rem;color:var(--bad);margin-top:8px"></p>${tool.note ? `<p style="font-size:.88rem;color:var(--muted)">${rich(tool.note)}</p>` : ""}</div></div></div>`);
+    const t = h(`<div class="tool"><div class="tool-title">${I("eye")} ${esc(tool.title || "Preview: how will it look on the micro:bit?")}</div><div class="tool-grid"><div class="mb"></div><div><label class="field">${esc(tool.label || "Type your name (English letters)")}<input maxlength="30" value="${esc(tool.value || "SARA")}"></label><div class="row" style="margin-top:10px"><button type="button" class="btn primary">${I("play")} Play</button><span class="speed" style="font-size:.85rem;color:var(--muted)"></span></div><p class="warnmsg" style="font-size:.85rem;color:var(--bad);margin-top:8px"></p>${tool.note ? `<p style="font-size:.88rem;color:var(--muted)">${rich(tool.note)}</p>` : ""}</div></div></div>`);
     const mb = new MiniBit(t.querySelector(".mb"), { buttons: false });
     const input = t.querySelector("input"), warn = t.querySelector(".warnmsg");
     const play = () => {
@@ -630,20 +639,20 @@
   TOOLS.download = () => {
     const t = h(`
       <div class="tabs">
-        <div class="tabs-head" role="tablist"><button type="button" class="on" data-t="0">⚡ Method 1: Connect &amp; Download</button><button type="button" data-t="1">📁 Method 2: Drag &amp; drop</button></div>
+        <div class="tabs-head" role="tablist"><button type="button" class="on" data-t="0">${I("zap")} Method 1: Connect &amp; Download</button><button type="button" data-t="1">${I("folder")} Method 2: Drag &amp; drop</button></div>
         <div class="tabs-body">
           <div data-p="0"><ol>
             <li>Plug the micro:bit into the computer with the USB cable. The yellow light on the back turns on.</li>
             <li>In MakeCode, click the <b>three dots ⋯</b> next to <b>Download</b> and choose <b>Connect device</b>. (MakeCode may also ask you this the first time you press Download.)</li>
             <li>Follow the steps, choose <b>BBC micro:bit CMSIS-DAP</b> in the pop-up and click <b>Connect</b>.</li>
-            <li>Click <b>Download</b>. The yellow light flashes, and your program starts on the micro:bit. 🎉</li>
+            <li>Click <b>Download</b>. The yellow light flashes, and your program starts on the micro:bit.</li>
             <li>Next time, just click <b>Download</b>. It goes straight to the micro:bit.</li>
           </ol><p style="font-size:.85rem;color:var(--muted);margin-top:8px">Works in <b>Chrome</b> and <b>Edge</b>.</p></div>
           <div data-p="1" hidden><ol>
             <li>Plug in the micro:bit. A drive called <b>MICROBIT</b> appears on the computer.</li>
             <li>In MakeCode, click <b>Download</b>. A file ending in <b>.hex</b> is saved (usually in <b>Downloads</b>).</li>
             <li>Open <b>File Explorer</b>, find the .hex file and <b>drag it onto the MICROBIT drive</b>.</li>
-            <li>The yellow light flashes while it copies. When it stops, your program runs. 🎉</li>
+            <li>The yellow light flashes while it copies. When it stops, your program runs.</li>
           </ol><p style="font-size:.85rem;color:var(--muted);margin-top:8px">The MICROBIT drive disappears and comes back after copying. That's normal!</p></div>
         </div>
       </div>`);
@@ -661,7 +670,7 @@
     let cur = 0, pauseMs = tool.pause != null ? tool.pause : 200;
     const t = h(`
       <div class="tool">
-        <div class="tool-title">🎨 ${esc(tool.title || (multi ? "Animation designer" : "LED designer"))}</div>
+        <div class="tool-title">${I("palette")} ${esc(tool.title || (multi ? "Animation designer" : "LED designer"))}</div>
         <div class="tool-grid">
           <div class="mb"></div>
           <div class="right">
@@ -670,7 +679,7 @@
               <button type="button" class="btn small" data-act="clear">Clear</button>
               <button type="button" class="btn small" data-act="invert">Invert</button>
             </div>
-            ${multi ? `<div class="frames"></div><div class="row"><button type="button" class="btn small" data-act="add">＋ New frame</button><button type="button" class="btn small" data-act="dup">⧉ Copy frame</button><button type="button" class="btn small" data-act="del">🗑 Delete frame</button><button type="button" class="btn small primary" data-act="play">▶ Play</button><label class="field" style="flex-direction:row;align-items:center;gap:6px">pause <select data-act="pause">${[0, 100, 200, 400, 800].map(v => `<option value="${v}" ${v === pauseMs ? "selected" : ""}>${v} ms</option>`).join("")}</select></label></div>` : ""}
+            ${multi ? `<div class="frames"></div><div class="row"><button type="button" class="btn small" data-act="add">${I("plus")} New frame</button><button type="button" class="btn small" data-act="dup">${I("copy")} Copy frame</button><button type="button" class="btn small" data-act="del">${I("trash-2")} Delete frame</button><button type="button" class="btn small primary" data-act="play">${I("play")} Play</button><label class="field" style="flex-direction:row;align-items:center;gap:6px">pause <select data-act="pause">${[0, 100, 200, 400, 800].map(v => `<option value="${v}" ${v === pauseMs ? "selected" : ""}>${v} ms</option>`).join("")}</select></label></div>` : ""}
             <div class="code" style="margin-top:12px"></div>
           </div>
         </div>
@@ -720,10 +729,10 @@
   };
 
   TOOLS.eventDemo = (tool) => {
-    const t = h(`<div class="tool"><div class="tool-title">🕹️ ${esc(tool.title || "Try the finished project")}</div><div class="tool-grid"><div class="mb"></div><div class="info"></div></div></div>`);
+    const t = h(`<div class="tool"><div class="tool-title">${I("gamepad-2")} ${esc(tool.title || "Try the finished project")}</div><div class="tool-grid"><div class="mb"></div><div class="info"></div></div></div>`);
     const mb = new MiniBit(t.querySelector(".mb"), { shake: !!tool.map.shake, buttons: true, logo: true });
     const info = t.querySelector(".info");
-    const labels = { A: "Press button A", B: "Press button B", logo: "Touch the logo", shake: "Shake it (📳)" , AB: "Press A+B" };
+    const labels = { A: "Press button A", B: "Press button B", logo: "Touch the logo", shake: "Shake it", AB: "Press A+B" };
     // Variables shown as labelled boxes next to the micro:bit, so students can watch them change.
     const vars = Object.assign({}, tool.vars || {});
     const watch = tool.watch || [];
@@ -761,7 +770,7 @@
     let pause = tool.start != null ? tool.start : 500;
     const t = h(`
       <div class="tool">
-        <div class="tool-title">🎚️ ${esc(tool.title || "Speed lab")}</div>
+        <div class="tool-title">${I("sliders-horizontal")} ${esc(tool.title || "Speed lab")}</div>
         <div class="tool-grid">
           <div class="mb"></div>
           <div class="right">
@@ -799,7 +808,7 @@
     sec.steps.forEach((s, i) => {
       const lvl = s.level || "core";
       if (lvl !== lastLevel) {
-        wrap.appendChild(h(`<div class="level-divider">${lvl === "ext" ? "🟡 Finished? Level up: Extension" : "🔴 Ready for a challenge?"}</div>`));
+        wrap.appendChild(h(`<div class="level-divider">${lvl === "ext" ? '<span class="lv-dot ext"></span>Finished? Level up: Extension' : '<span class="lv-dot chal"></span>Ready for a challenge?'}</div>`));
         lastLevel = lvl;
       }
       if (lvl === "core") coreIdx.push(i);
@@ -816,18 +825,18 @@
       // pageCode: false keeps a snippet for the slides and teacher plan only (e.g. when a tool already shows live code)
       if (s.code && s.pageCode !== false) body.appendChild(codePanel(s.code, { label: s.codeLabel, lang: s.lang }));
       if (s.tool) body.appendChild(TOOLS[s.tool.type](s.tool));
-      if (s.tip) body.appendChild(h(`<div class="tip"><b>💡 Tip:</b> ${rich(s.tip)}</div>`));
-      if (s.warn) body.appendChild(h(`<div class="warn"><b>⚠️ Watch out:</b> ${rich(s.warn)}</div>`));
+      if (s.tip) body.appendChild(h(`<div class="tip">${I("lightbulb")}<div><b>Tip:</b> ${rich(s.tip)}</div></div>`));
+      if (s.warn) body.appendChild(h(`<div class="warn">${I("triangle-alert")}<div><b>Watch out:</b> ${rich(s.warn)}</div></div>`));
       // hints & solution
       const hints = s.hints || [];
       let shown = st.hints[i] || 0;
-      const hintBtn = hints.length ? h(`<button type="button" class="btn small">💡 Hint (${hints.length})</button>`) : null;
-      const solBtn = s.solution ? h(`<button type="button" class="btn small ghost">👀 Show solution</button>`) : null;
+      const hintBtn = hints.length ? h(`<button type="button" class="btn small">${I("lightbulb")} Hint (${hints.length})</button>`) : null;
+      const solBtn = s.solution ? h(`<button type="button" class="btn small ghost">${I("eye")} Show solution</button>`) : null;
       let solShown = false;
       function renderExtra() {
         extra.querySelectorAll(".hint").forEach(x => x.remove());
-        for (let k = 0; k < shown; k++) extra.insertBefore(h(`<div class="hint"><b>Hint ${k + 1}:</b> ${rich(hints[k])}</div>`), extra.querySelector(".code-panel"));
-        if (hintBtn) { hintBtn.textContent = shown < hints.length ? `💡 Hint ${shown + 1} of ${hints.length}` : "💡 No more hints"; hintBtn.disabled = shown >= hints.length; }
+        for (let k = 0; k < shown; k++) extra.insertBefore(h(`<div class="hint">${I("lightbulb")}<div><b>Hint ${k + 1}:</b> ${rich(hints[k])}</div></div>`), extra.querySelector(".code-panel"));
+        if (hintBtn) { hintBtn.innerHTML = I("lightbulb") + (shown < hints.length ? ` Hint ${shown + 1} of ${hints.length}` : " No more hints"); hintBtn.disabled = shown >= hints.length; }
         if (solBtn) solBtn.hidden = !TEACHER && shown < hints.length;
       }
       if (hintBtn) { hintBtn.onclick = () => { shown = Math.min(hints.length, shown + 1); st.hints[i] = shown; store.set("mission:" + sec.id, st); renderExtra(); }; foot.appendChild(hintBtn); }
@@ -849,7 +858,7 @@
         st.checked = st.checked.filter(x => x !== i); if (cb.checked) st.checked.push(i);
         store.set("mission:" + sec.id, st);
         el.classList.toggle("checked", cb.checked);
-        if (cb.checked) { tones(SOUNDS.ok, "sine"); toast(lvl === "core" ? "Nice work! ✓" : lvl === "ext" ? "Extension done! 🟡" : "Challenge complete! 🔴🏆"); }
+        if (cb.checked) { tones(SOUNDS.ok, "sine"); toast(lvl === "core" ? "Nice work!" : lvl === "ext" ? "Extension done!" : "Challenge complete!", 2600, lvl === "chal" ? "trophy" : "circle-check"); }
         if (req.every(k => st.checked.includes(k))) markDone(sec.id, true);
       };
       wrap.appendChild(el);
@@ -864,8 +873,8 @@
     const st = store.get("order:" + sec.id, null) || { seq: sec.items.map((_, i) => i), tries: 0 };
     const list = h(`<ol class="order-list" aria-label="Steps to put in order"></ol>`);
     const fb = h(`<div class="feedback" aria-live="polite"></div>`);
-    const btns = h(`<div class="row" style="margin-top:12px"><button type="button" class="btn primary" data-act="check">✔ Check</button><button type="button" class="btn ghost" data-act="reset">↺ Start again</button></div>`);
-    c.append(h(`<p class="q" style="margin-top:6px">${rich(sec.how || "Use ▲ ▼ (or drag the cards) to put the steps in the right order.")}</p>`), list, btns, fb);
+    const btns = h(`<div class="row" style="margin-top:12px"><button type="button" class="btn primary" data-act="check">${I("check")} Check</button><button type="button" class="btn ghost" data-act="reset">${I("rotate-ccw")} Start again</button></div>`);
+    c.append(h(`<p class="q" style="margin-top:6px">${rich(sec.how || "Use the up and down arrows (or drag the cards) to put the steps in the right order.")}</p>`), list, btns, fb);
     let dragFrom = null;
     const save = () => store.set("order:" + sec.id, st);
     function move(from, to) {
@@ -877,7 +886,7 @@
       list.innerHTML = "";
       st.seq.forEach((idx, pos) => {
         const it = sec.items[idx];
-        const li = h(`<li class="order-item" draggable="true"><span class="grip" aria-hidden="true">⋮⋮</span><span class="pos">${pos + 1}</span><span class="txt">${it.emoji ? `<span class="emo">${it.emoji}</span> ` : ""}${rich(it.label)}</span><span class="spacer"></span><button type="button" class="btn small ghost" aria-label="Move up" ${pos === 0 ? "disabled" : ""}>▲</button><button type="button" class="btn small ghost" aria-label="Move down" ${pos === st.seq.length - 1 ? "disabled" : ""}>▼</button></li>`);
+        const li = h(`<li class="order-item" draggable="true"><span class="grip" aria-hidden="true">${I("grip-vertical")}</span><span class="pos">${pos + 1}</span><span class="txt">${it.icon ? `<span class="emo">${I(it.icon)}</span> ` : ""}${rich(it.label)}</span><span class="spacer"></span><button type="button" class="btn small ghost" aria-label="Move up" ${pos === 0 ? "disabled" : ""}>${I("arrow-up")}</button><button type="button" class="btn small ghost" aria-label="Move down" ${pos === st.seq.length - 1 ? "disabled" : ""}>${I("arrow-down")}</button></li>`);
         if (marks) li.classList.add(marks[pos] ? "right" : "wrong");
         if (TEACHER && !marks) li.title = "Correct position: " + it.n;
         const [up, down] = li.querySelectorAll("button");
@@ -895,7 +904,7 @@
       const marks = st.seq.map((idx, pos) => sec.items[idx].n === pos + 1);
       draw(marks);
       if (marks.every(Boolean)) {
-        fb.className = "feedback show ok"; fb.innerHTML = `🎉 <b>Perfect order!</b> ${rich(sec.success || "")}`; markDone(sec.id);
+        fb.className = "feedback show ok"; fb.innerHTML = `${I("party-popper")} <b>Perfect order!</b> ${rich(sec.success || "")}`; markDone(sec.id);
         return;
       }
       st.tries = (st.tries || 0) + 1; save();
@@ -904,7 +913,7 @@
       if (st.tries >= 2) {
         const pos = marks.findIndex(m => !m);
         const should = sec.items.find(it => it.n === pos + 1);
-        msg += `<br>💡 Hint: step ${pos + 1} should be “${esc(should.label.replace(/<[^>]+>/g, ""))}”.`;
+        msg += `<br>${I("lightbulb")} Hint: step ${pos + 1} should be “${esc(should.label.replace(/<[^>]+>/g, ""))}”.`;
       }
       fb.className = "feedback show bad"; fb.innerHTML = msg;
     };
@@ -913,7 +922,7 @@
   };
 
   /* Robot dot: build a sequence of arrow commands that moves an LED dot to the goal on a 5x5 grid. */
-  const ROBOT = { ARROW: { U: "⬆", D: "⬇", L: "⬅", R: "➡" }, NAME: { U: "Up", D: "Down", L: "Left", R: "Right" }, DELTA: { U: [-1, 0], D: [1, 0], L: [0, -1], R: [0, 1] } };
+  const ROBOT = { ARROW: { U: "arrow-up", D: "arrow-down", L: "arrow-left", R: "arrow-right" }, NAME: { U: "Up", D: "Down", L: "Left", R: "Right" }, DELTA: { U: [-1, 0], D: [1, 0], L: [0, -1], R: [0, 1] } };
   function robotShortest(lv) {
     const walls = new Set((lv.walls || []).map(([r, c]) => r * 5 + c));
     const prev = new Map([[lv.start[0] * 5 + lv.start[1], null]]);
@@ -944,16 +953,16 @@
           <div class="robot-board" aria-label="LED grid"></div>
           <div class="robot-side">
             <p class="robot-task"></p>
-            <div class="robot-cmds">${"UDLR".split("").map(k => `<button type="button" class="btn" data-cmd="${k}">${ARROW[k]} ${NAME[k]}</button>`).join("")}</div>
+            <div class="robot-cmds">${"UDLR".split("").map(k => `<button type="button" class="btn" data-cmd="${k}">${I(ARROW[k])} ${NAME[k]}</button>`).join("")}</div>
             <div class="robot-prog-head"><b>Your algorithm</b><span class="robot-count"></span></div>
             <ol class="robot-prog" aria-label="Your algorithm"></ol>
             <p class="robot-help">Click a step to delete it. You can also use the arrow keys on your keyboard.</p>
             <div class="row">
-              <button type="button" class="btn primary" data-act="run">▶ Run</button>
-              <button type="button" class="btn ghost" data-act="clear">🗑 Clear</button>
-              <button type="button" class="btn ghost" data-act="restore" hidden>↺ Get the buggy program back</button>
-              <button type="button" class="btn ghost" data-act="answer" hidden>👀 Show an answer</button>
-              <button type="button" class="btn" data-act="next" hidden>Next level →</button>
+              <button type="button" class="btn primary" data-act="run">${I("play")} Run</button>
+              <button type="button" class="btn ghost" data-act="clear">${I("trash-2")} Clear</button>
+              <button type="button" class="btn ghost" data-act="restore" hidden>${I("rotate-ccw")} Get the buggy program back</button>
+              <button type="button" class="btn ghost" data-act="answer" hidden>${I("eye")} Show an answer</button>
+              <button type="button" class="btn" data-act="next" hidden>Next level ${I("arrow-right")}</button>
             </div>
             <div class="feedback" aria-live="polite"></div>
           </div>
@@ -979,7 +988,7 @@
       }));
     }
     function drawTabs() {
-      tabs.innerHTML = sec.levels.map((l, i) => `<button type="button" role="tab" aria-selected="${i === st.cur}" class="${i === st.cur ? "on" : ""} ${st.done.includes(i) ? "done" : ""}">${st.done.includes(i) ? "✓ " : ""}Level ${i + 1}</button>`).join("");
+      tabs.innerHTML = sec.levels.map((l, i) => `<button type="button" role="tab" aria-selected="${i === st.cur}" class="${i === st.cur ? "on" : ""} ${st.done.includes(i) ? "done" : ""}">${st.done.includes(i) ? I("check") + " " : ""}Level ${i + 1}</button>`).join("");
       tabs.querySelectorAll("button").forEach((b, i) => { b.onclick = () => { if (running) return; st.cur = i; save(); drawAll(); }; });
     }
     function drawProg(activeIdx = -1, badIdx = -1) {
@@ -987,7 +996,7 @@
       progEl.innerHTML = "";
       if (!p.length) progEl.appendChild(h(`<li class="empty">Click the arrows to add steps…</li>`));
       p.forEach((cmd, i) => {
-        const li = h(`<li><button type="button" class="rstep${i === activeIdx ? " active" : ""}${i === badIdx ? " bad" : ""}" aria-label="Step ${i + 1}: ${NAME[cmd]}. Click to delete."><span class="n">${i + 1}</span>${ARROW[cmd]}</button></li>`);
+        const li = h(`<li><button type="button" class="rstep${i === activeIdx ? " active" : ""}${i === badIdx ? " bad" : ""}" aria-label="Step ${i + 1}: ${NAME[cmd]}. Click to delete."><span class="n">${i + 1}</span>${I(ARROW[cmd])}</button></li>`);
         li.querySelector("button").onclick = () => { if (running) return; p.splice(i, 1); save(); fb.className = "feedback"; drawProg(); drawBoard(lv().start); };
         progEl.appendChild(li);
       });
@@ -1040,7 +1049,7 @@
           board.classList.remove("bump"); void board.offsetWidth; board.classList.add("bump");
           tones([[220, 120], [160, 220]], "sawtooth");
           fb.className = "feedback show bad";
-          fb.innerHTML = `💥 <b>Bump!</b> Step ${i + 1} (${ARROW[p[i]]} ${NAME[p[i]]}) hits ${edge ? "the edge of the grid" : "a wall"}. That step is the <b>bug</b>: click it to delete it, then fix your algorithm and run it again.`;
+          fb.innerHTML = `${I("circle-alert")} <b>Bump!</b> Step ${i + 1} (${NAME[p[i]]}) hits ${edge ? "the edge of the grid" : "a wall"}. That step is the <b>bug</b>: click it to delete it, then fix your algorithm and run it again.`;
           return;
         }
         trail.push(pos); pos = [nr, nc]; drawBoard(pos, trail);
@@ -1054,7 +1063,7 @@
         save(); drawTabs();
         const shortest = l.best && p.length === l.best;
         fb.className = "feedback show ok";
-        fb.innerHTML = `🎉 <b>You reached the heart in ${p.length} steps!</b> ` + (shortest ? "That's the shortest possible algorithm. 🏆" : l.best ? `The shortest algorithm has ${l.best} steps. Can you find it?` : "");
+        fb.innerHTML = `${I("party-popper")} <b>You reached the heart in ${p.length} steps!</b> ` + (shortest ? I("trophy") + " That's the shortest possible algorithm." : l.best ? `The shortest algorithm has ${l.best} steps. Can you find it?` : "");
         if (st.done.length >= required) markDone(sec.id);
         act("next").hidden = st.cur >= sec.levels.length - 1;
       } else {
@@ -1082,11 +1091,11 @@
       let msg;
       if (sec.bands) {
         const band = sec.bands.slice().sort((a, b) => b.min - a.min).find(b => right >= b.min);
-        msg = band ? `<b>${esc(band.label)}</b><br>${rich(band.text)}` : "";
+        msg = band ? `<b><span class="lv-dot ${band.level || ""}"></span>${esc(band.label)}</b><br>${rich(band.text)}` : "";
       } else {
-        msg = right === sec.questions.length ? "Perfect! 🌟" : right >= sec.questions.length - 1 ? "Great job! 👏" : right >= sec.questions.length / 2 ? "Good effort. Read the explanations again. 👍" : "Keep practising. Ask your teacher about the tricky ones. 💪";
+        msg = right === sec.questions.length ? "Perfect!" : right >= sec.questions.length - 1 ? "Great job!" : right >= sec.questions.length / 2 ? "Good effort. Read the explanations again." : "Keep practising. Ask your teacher about the tricky ones.";
       }
-      score.innerHTML = `<div>${sec.diagnostic ? "Your group's starting point" : "Your group's score"}</div><div class="big">${right} / ${sec.questions.length}</div><p>${msg}</p><p style="font-size:.85rem;color:var(--muted)">📝 Reporter: ${sec.diagnostic ? "write this score and your route on the worksheet." : "write this score on your worksheet and show this screen to your teacher."}</p>`;
+      score.innerHTML = `<div>${sec.diagnostic ? "Your group's starting point" : "Your group's score"}</div><div class="big">${right} / ${sec.questions.length}</div><p>${msg}</p><p style="font-size:.85rem;color:var(--muted)">${I("notebook-pen")} Reporter: ${sec.diagnostic ? "write this score and your route on the worksheet." : "write this score on your worksheet and show this screen to your teacher."}</p>`;
       score.classList.add("show");
       markDone(sec.id);
     }
@@ -1097,7 +1106,7 @@
     const list = h(`<div></div>`); c.appendChild(list);
     const items = sec.items || L.objectives;
     items.forEach((o, i) => {
-      const row = h(`<div class="reflect-row"><div>${rich(o)}</div><div class="traffic"><button type="button" data-v="1">🔴 Not yet</button><button type="button" data-v="2">🟡 Getting there</button><button type="button" data-v="3">🟢 Got it!</button></div></div>`);
+      const row = h(`<div class="reflect-row"><div>${rich(o)}</div><div class="traffic"><button type="button" data-v="1"><span class="lv-dot chal"></span>Not yet</button><button type="button" data-v="2"><span class="lv-dot ext"></span>Getting there</button><button type="button" data-v="3"><span class="lv-dot core"></span>Got it!</button></div></div>`);
       row.querySelectorAll("button").forEach(b => {
         if (String(st.r[i]) === b.dataset.v) b.classList.add("on");
         b.onclick = () => {
@@ -1121,17 +1130,18 @@
   };
 
   R.next = (sec, c) => {
-    c.appendChild(h(`<div class="next-card"><div class="big-emo">${sec.emoji || "🚀"}</div><div><h3 style="margin:0">${esc(sec.lesson)}</h3><p style="margin:0;color:var(--muted)">${rich(sec.teaser)}</p></div></div>`));
+    c.appendChild(h(`<div class="next-card"><div class="big-ic">${I(sec.icon || "rocket")}</div><div><h3 style="margin:0">${esc(sec.lesson)}</h3><p style="margin:0;color:var(--muted)">${rich(sec.teaser)}</p></div></div>`));
   };
 
   L.sections.forEach(sec => {
     const c = card(sec);
     (R[sec.type] || R.text)(sec, c);
+    decorate(c);
     main.appendChild(c);
   });
 
   /* footer */
-  const foot = h(`<footer class="page-foot">micro:bit Lab · ${esc(L.trackLabel)} · ${esc(L.id)} &nbsp;·&nbsp; <button type="button" class="btn small ghost" data-act="reset">↺ Reset this page</button></footer>`);
+  const foot = h(`<footer class="page-foot">micro:bit Lab · ${esc(L.trackLabel)} · ${esc(L.id)} &nbsp;·&nbsp; <button type="button" class="btn small ghost" data-act="reset">${I("rotate-ccw")} Reset this page</button></footer>`);
   foot.querySelector("button").onclick = async () => {
     if (!confirm(STUDENT ? "Clear all your progress in this lesson? (Your teammates' copies don't change.)" : "Clear all progress on this page for this computer?")) return;
     store.reset();
@@ -1142,7 +1152,7 @@
 
   /* help drawer */
   const HELP = (L.help || []).concat([
-    { q: "It says “Not saved yet” at the top", a: "The internet connection dropped. Keep working: the page keeps trying and saves everything when the connection comes back. Wait for <b>✓ Saved</b> before you close the page." },
+    { q: "It says “Not saved yet” at the top", a: "The internet connection dropped. Keep working: the page keeps trying and saves everything when the connection comes back. Wait for <b>Saved</b> before you close the page." },
     { q: "I forgot my ID or password", a: "Ask your teacher: they can find your ID and give you a new password." },
     { q: "The Download button doesn't send my program to the micro:bit", a: "Use <b>Chrome</b> or <b>Edge</b>. Click the three dots <b>⋯</b> next to Download, choose <b>Connect device</b> and follow the steps. Still stuck? Use drag &amp; drop: download the .hex file and drag it onto the <b>MICROBIT</b> drive." },
     { q: "The computer can't find my micro:bit", a: "Unplug the cable and plug it back in. Try another USB port. Some cables can only charge and can't send programs: ask your teacher for another cable." },
@@ -1153,10 +1163,10 @@
     { q: "I deleted something by mistake", a: "Press <kbd>Ctrl</kbd> + <kbd>Z</kbd> to undo." },
     { q: "The battery pack doesn't work", a: "Check the switch on the battery pack is <b>ON</b> and the plug is pushed all the way into the battery socket. At the end of the lesson, switch it <b>OFF</b> to save the batteries." }
   ]);
-  const fab = h(`<button type="button" class="btn primary help-fab">🆘 Stuck?</button>`);
+  const fab = h(`<button type="button" class="btn primary help-fab">${I("life-buoy")} Stuck?</button>`);
   const back = h(`<div class="drawer-backdrop"></div>`);
-  const drawer = h(`<aside class="drawer" aria-label="Help"><div class="drawer-head"><h2>🆘 Help</h2><button type="button" class="btn small ghost" data-act="close">✕ Close</button></div><div class="drawer-body">
-      <div class="ask3"><b>Ask 3 before me 🙋</b><ol><li>Read the step again, slowly.</li><li>Try the 💡 Hint button.</li><li>Ask your group.</li></ol><div style="margin-top:6px">Still stuck? The <b>Reporter</b> raises a hand.</div></div>
+  const drawer = h(`<aside class="drawer" aria-label="Help"><div class="drawer-head"><h2>${I("life-buoy")} Help</h2><button type="button" class="btn small ghost" data-act="close">${I("x")} Close</button></div><div class="drawer-body">
+      <div class="ask3"><b>${I("hand")} Ask 3 before me</b><ol><li>Read the step again, slowly.</li><li>Try the <b>Hint</b> button.</li><li>Ask your group.</li></ol><div style="margin-top:6px">Still stuck? The <b>Reporter</b> raises a hand.</div></div>
       ${HELP.map(x => `<details class="faq"><summary>${x.q}</summary><div>${x.a}</div></details>`).join("")}
     </div></aside>`);
   const openD = o => { drawer.classList.toggle("show", o); back.classList.toggle("show", o); };

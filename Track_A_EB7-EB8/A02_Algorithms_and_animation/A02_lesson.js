@@ -4,7 +4,7 @@ window.LESSON = {
   id: "A2", track: "A", trackLabel: "Track A · Explorers", grades: "EB7 – EB8", number: 2,
   title: "Algorithms & animation",
   mission: "Find out what an <b>algorithm</b> is, hunt down <b>bugs</b>, and bring your micro:bit to life with an <b>animated emoji</b>.",
-  chips: ["⏱ 60 minutes", "👥 Group work", "🧩 MakeCode blocks"],
+  chips: ["clock:60 minutes", "users:Group work", "puzzle:MakeCode blocks"],
   rotateMinutes: 12,
   objectives: [
     "explain what an {{algorithm}} is and why the order of the steps matters.",
@@ -29,24 +29,24 @@ window.LESSON = {
   sections: [
     {
       id: "teacher", type: "text", nav: "Program your teacher", title: "Warm-up: Program your teacher", minutes: 4, kind: "Unplugged · whole class",
-      html: "<p>Today your teacher is a <b>robot</b> 🤖. A robot does <b>exactly</b> what you say: nothing more, nothing less.</p><ol><li>The robot starts at the door. Your class must get it to <b>sit on the teacher's chair</b>.</li><li>Give <b>one instruction at a time</b>, for example “take 2 steps forward” or “turn left”.</li><li>Watch carefully: if an instruction is not clear, the robot gets it wrong!</li></ol><div class=\"tip\"><b>💡 Think:</b> which instructions went wrong, and why? What makes a good instruction?</div>"
+      html: "<p>Today your teacher is a <b>robot</b>. A robot does <b>exactly</b> what you say: nothing more, nothing less.</p><ol><li>The robot starts at the door. Your class must get it to <b>sit on the teacher's chair</b>.</li><li>Give <b>one instruction at a time</b>, for example “take 2 steps forward” or “turn left”.</li><li>Watch carefully: if an instruction is not clear, the robot gets it wrong!</li></ol><div class=\"tip\"><b>Think:</b> which instructions went wrong, and why? What makes a good instruction?</div>"
     },
     {
       id: "order", type: "order", nav: "Order the steps", title: "Put the algorithm in order", minutes: 3,
       intro: "<p>An <b>{{algorithm}}</b> is a list of steps in the right order. Here is the algorithm for last week's name badge, but the steps are mixed up. Put them back in order!</p>",
       items: [
-        { label: "Click Download", emoji: "⬇️", n: 5 },
-        { label: "Open MakeCode and click New Project", emoji: "🌐", n: 1 },
-        { label: "Watch your name scroll on the micro:bit", emoji: "👀", n: 6 },
-        { label: "Type your name in the block", emoji: "⌨️", n: 3 },
-        { label: "Test it in the simulator", emoji: "🖥️", n: 4 },
-        { label: "Drag a show string block into forever", emoji: "🧩", n: 2 }
+        { label: "Click Download", icon: "download", n: 5 },
+        { label: "Open MakeCode and click New Project", icon: "globe", n: 1 },
+        { label: "Watch your name scroll on the micro:bit", icon: "eye", n: 6 },
+        { label: "Type your name in the block", icon: "keyboard", n: 3 },
+        { label: "Test it in the simulator", icon: "monitor-play", n: 4 },
+        { label: "Drag a show string block into forever", icon: "puzzle", n: 2 }
       ],
       success: "The order matters: you can't type your name before the block is there, and there is nothing to watch until you download!"
     },
     {
       id: "robot", type: "robot", nav: "Robot dot", title: "Robot dot: program the LED", minutes: 7,
-      intro: "<p>Program the red LED dot to reach the ♥. Click the arrows to build your <b>algorithm</b>, then press <b>▶ Run</b>. If the dot bumps into something, the step that went wrong turns red: that step is a <b>{{bug}}</b>.</p>",
+      intro: "<p>Program the red LED dot to reach the ♥. Click the arrows to build your <b>algorithm</b>, then press <b>Run</b>. If the dot bumps into something, the step that went wrong turns red: that step is a <b>{{bug}}</b>.</p>",
       max: 16,
       levels: [
         { name: "First steps", task: "Get the dot to the heart.", start: [4, 0], goal: [4, 4], best: 4 },
@@ -54,7 +54,7 @@ window.LESSON = {
         { name: "The wall", task: "A wall is in the way. Find a way around it.", start: [4, 0], goal: [0, 0], walls: [[2, 0], [2, 1], [2, 2], [2, 3]], best: 12 },
         { name: "Bug hunt", task: "This algorithm was written for you, but it has a bug. Run it, find the step that turns red, then fix it.", start: [4, 0], goal: [0, 4], best: 8,
           prefill: ["U", "U", "U", "U", "L", "R", "R", "R"],
-          teacherNote: "Step 5 (⬅ Left) hits the edge of the grid. Fix: delete it, then add one more ➡ Right at the end." }
+          teacherNote: "Step 5 (Left) hits the edge of the grid. Fix: delete it, then add one more Right at the end." }
       ]
     },
     {
@@ -136,7 +136,7 @@ window.LESSON = {
           solution: "basic.forever(function () {\n    for (let index = 0; index < 3; index++) {\n        basic.showLeds(`\n            . . . . .\n            . # . # .\n            . . . . .\n            # . . . #\n            . # # # .\n            `)\n        basic.showLeds(`\n            . . . . .\n            # # . # #\n            . . . . .\n            # . . . #\n            . # # # .\n            `)\n    }\n    basic.showIcon(IconNames.Heart)\n    basic.pause(1000)\n})"
         },
         {
-          level: "chal", title: "Rocket launch 🚀",
+          level: "chal", title: "Rocket launch",
           html: "<p>Count down 3, 2, 1, then make a rocket fly up and off the screen. Plan the frames here: the rocket moves up one row in each frame.</p>",
           tool: { type: "ledDesigner", frames: true, pause: 0, title: "Plan your rocket", start: [".....|.....|..#..|.###.|.#.#.", ".....|..#..|.###.|.#.#.|.....", "..#..|.###.|.#.#.|.....|.....", ".###.|.#.#.|.....|.....|.....", ".#.#.|.....|.....|.....|....."] },
           hints: ["Start with the countdown: show number 3, 2, 1.", "Each frame is one show leds block. Move the rocket up one row each time, until it disappears."],
@@ -176,7 +176,7 @@ window.LESSON = {
       ]
     },
     {
-      id: "next", type: "next", nav: "Next lesson", title: "Next lesson", emoji: "😮",
+      id: "next", type: "next", nav: "Next lesson", title: "Next lesson", icon: "mouse-pointer-click",
       lesson: "A3 · Events & inputs",
       teaser: "Make your micro:bit react to you: buttons, shaking and the touch logo. You'll build an emotion badge!"
     }
