@@ -1,0 +1,27 @@
+# PUBLIC REPO: only the student website and its build settings are published.
+# Everything is ignored by default; the lines starting with ! let student files through.
+# Teacher plans, slides, worksheets, solution code, notes and build tools stay on this computer.
+/*
+!/.gitignore
+!/netlify.toml
+!/index.html
+!/_shared/
+
+# Lesson folders: only the student page and its lesson content
+!/Track_A_EB7-EB8/
+!/Track_B_EB9-Seconde/
+/Track_*/*/*
+!/Track_*/*/*_student.html
+!/Track_*/*/*_lesson.js
+
+# Build folder: only the script that assembles the website
+!/_build/
+/_build/*
+!/_build/site.js
+
+# Never publish these, wherever they are
+.env
+desktop.ini
+Thumbs.db
+~$*
+*.tmp

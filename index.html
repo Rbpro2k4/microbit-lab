@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>micro:bit Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared/lesson.css">
+</head>
+<body>
+<main class="portal">
+  <div class="portal-hero">
+    <div id="hero-mb" style="max-width:220px;margin:0 auto 12px"></div>
+    <h1>micro:bit Lab</h1>
+    <p class="lead">Choose your track, then open today's lesson.</p>
+  </div>
+  <div class="tracks">
+    <section class="card track-card A">
+      <h2>🧭 Track A · Explorers</h2>
+      <p class="lead">EB7 – EB8 · MakeCode blocks</p>
+      <ul class="lesson-list" id="list-A"></ul>
+    </section>
+    <section class="card track-card B">
+      <h2>🛠️ Track B · Engineers</h2>
+      <p class="lead">EB9 – Seconde · Blocks, then Python</p>
+      <ul class="lesson-list" id="list-B"></ul>
+    </section>
+  </div>
+  <footer class="page-foot">Term 1 · October – December</footer>
+</main>
+<script src="_shared/minibit.js"></script>
+<script>
+  // href: null = not published yet
+  const LESSONS = {
+    A: [
+      ["A1", "Meet the micro:bit", "Week 1", "Track_A_EB7-EB8/A01_Meet_the_microbit/A01_student.html"],
+      ["A2", "Algorithms & animation", "Week 2", "Track_A_EB7-EB8/A02_Algorithms_and_animation/A02_student.html"],
+      ["A3", "Events & inputs", "Week 3", null],
+      ["A4", "Variables", "Week 4", null],
+      ["A5", "Random & decisions", "Week 5", null],
+      ["A6", "Loops & reaction game", "Week 6", null],
+      ["A7", "Sensors 1: light & temperature", "Week 7", null],
+      ["A8", "Sensors 2: motion & sound", "Week 8", null],
+      ["A9", "Radio", "Week 9", null],
+      ["A10", "Term project: Winter gadget", "Week 10", null]
+    ],
+    B: [
+      ["B1", "Crash course: meet the micro:bit", "Week 1", "Track_B_EB9-Seconde/B01_Crash_course/B01_student.html"],
+      ["B2", "Logic in blocks", "Week 2", "Track_B_EB9-Seconde/B02_Logic_in_blocks/B02_student.html"],
+      ["B3", "Hello Python", "Week 3", null],
+      ["B4", "Variables & decisions (Python)", "Week 4", null],
+      ["B5", "Lists & random", "Week 5", null],
+      ["B6", "Functions & debugging", "Week 6", null],
+      ["B7", "Sensors in Python", "Week 7", null],
+      ["B8", "Data logging & analysis", "Week 8", null],
+      ["B9", "Radio networks", "Week 9", null],
+      ["B10", "Term project & demo", "Week 10", null]
+    ]
+  };
+  for (const t of ["A", "B"]) {
+    document.getElementById("list-" + t).innerHTML = LESSONS[t].map(([id, title, wk, href]) => href
+      ? `<li><a href="${href}"><span class="code">${id}</span><span>${title}</span><span class="wk">${wk}</span></a></li>`
+      : `<li><span class="soon"><span class="code">${id}</span><span>${title}</span><span class="wk">Coming soon</span></span></li>`).join("");
+  }
+  new MiniBit(document.getElementById("hero-mb"), {}).run([["loop", "forever", [["scroll", "HELLO!"], ["icon", "Heart", 900], ["icon", "SmallHeart", 500], ["icon", "Heart", 900]]]]);
+</script>
+</body>
+</html>
