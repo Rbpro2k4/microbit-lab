@@ -235,8 +235,9 @@
         <div class="lesson-id"><span class="kicker">${esc(L.trackLabel)} · Lesson ${L.number}</span><span class="title">${esc(L.title)}</span></div>
         <div class="spacer"></div>
         <div class="progress-wrap"><span class="label">Progress</span><div class="progress-bar"><span></span></div><span class="pct">0%</span></div>
-        <div class="acct">${STUDENT ? `<span class="acct-name" title="${esc(STUDENT.name)} · ${esc(STUDENT.id)}">👤 ${esc(ACC.firstName(STUDENT.name))}</span><span class="save-state" aria-live="polite">✓ Saved</span>`
-          : TEACHER ? `<span class="acct-name">👩‍🏫 Teacher</span>` : `<span class="save-state warn">Not logged in</span>`}</div>
+        <div class="acct">${STUDENT ? `<span class="save-state" aria-live="polite" title="Saved to your account"><span class="ico">✓</span><span class="txt">Saved</span></span>` : ""}
+          ${STUDENT || TEACHER ? `<button type="button" class="acct-btn" aria-haspopup="menu" aria-expanded="false" title="Your account"><span class="avatar">${STUDENT ? esc(ACC.firstName(STUDENT.name)[0] || "?") : "👩‍🏫"}</span><span class="acct-label">${STUDENT ? esc(ACC.firstName(STUDENT.name)) : "Teacher"}</span><span class="caret">▾</span></button>`
+            : `<span class="save-state warn"><span class="ico">⚠</span><span class="txt">Not logged in</span></span>`}</div>
       </div>
       ${STUDENT && session.offline ? `<div class="net-banner">⚠️ The server can't be reached. Your work is kept on this computer and saved to your account when the connection comes back.</div>`
         : !STUDENT && !TEACHER ? `<div class="net-banner">⚠️ The website's server can't be reached, so nobody is logged in: your work is saved on this computer only.</div>` : ""}
@@ -249,13 +250,40 @@
   const main = layout.querySelector("main"), navList = layout.querySelector(".sidenav ol");
   document.body.appendChild(toastWrap);
 
+  /* account menu: my lessons, my group, dashboard, log out */
+  const acctBtn = top.querySelector(".acct-btn");
+  if (acctBtn) {
+    const homeDir = portalHref.replace(/index\.html$/, "");
+    const menu = h(`
+      <div class="acct-menu" role="menu" hidden>
+        <div class="acct-who">${STUDENT ? `<b>${esc(STUDENT.name)}</b><span>${esc(STUDENT.id)} · ${esc(STUDENT.class)}</span>` : `<b>Teacher</b><span>Answers are shown</span>`}</div>
+        <a role="menuitem" href="${portalHref}">🏠 My lessons</a>
+        ${STUDENT ? `<button type="button" role="menuitem" data-act="group">👥 My group</button>` : `<a role="menuitem" href="${homeDir}teacher.html">📊 Dashboard</a>`}
+        <button type="button" role="menuitem" data-act="logout" class="danger">🚪 Log out</button>
+      </div>`);
+    top.querySelector(".acct").appendChild(menu);
+    const setOpen = open => { menu.hidden = !open; acctBtn.setAttribute("aria-expanded", String(open)); };
+    acctBtn.onclick = e => { e.stopPropagation(); setOpen(menu.hidden); };
+    document.addEventListener("click", e => { if (!menu.hidden && !menu.contains(e.target)) setOpen(false); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") setOpen(false); });
+    const g = menu.querySelector('[data-act="group"]');
+    if (g) g.onclick = () => { setOpen(false); openGroupModal(); };
+    menu.querySelector('[data-act="logout"]').onclick = async () => {
+      const b = menu.querySelector('[data-act="logout"]');
+      b.disabled = true; b.textContent = "Saving and logging out…";
+      await ACC.logout(); // sends any unsaved work first
+      location.href = portalHref;
+    };
+  }
+
   /* roles strip + timer */
   const rolesInner = top.querySelector(".roles-inner");
   let dueNotified = false;
   function renderRoles() {
     const a = assignments();
+    top.classList.toggle("solo", TEACHER || (!!STUDENT && (group.names || []).length <= 1));
     rolesInner.innerHTML = a.map(x => `<span class="role" title="${esc(x.role.desc)}"><span class="ico">${x.role.ico}</span><b>${x.role.name}</b>${x.who ? `<span class="who">${esc(x.who)}</span>` : ""}</span>`).join("") +
-      `<span class="role-timer"><span>Swap roles in</span><span class="clock">--:--</span><button type="button" class="btn small" data-act="rotate">↻ Swap</button><button type="button" class="btn small ghost" data-act="group">👥 Group</button></span>`;
+      `<span class="role-timer"><span class="swap-label">Swap roles in</span><span class="clock">--:--</span><button type="button" class="btn small" data-act="rotate" title="Swap roles">↻<span class="btn-txt"> Swap</span></button><button type="button" class="btn small ghost" data-act="group" title="Group">👥<span class="btn-txt"> Group</span></button></span>`;
     rolesInner.querySelector('[data-act="rotate"]').onclick = rotate;
     rolesInner.querySelector('[data-act="group"]').onclick = openGroupModal;
     tick();
@@ -349,12 +377,15 @@
   }
   if (STUDENT) {
     onStoreChange = () => ACC.queueSave(L.id, store.data, summary());
-    const labels = { saved: "✓ Saved", saving: "Saving…", pending: "Saving…", error: "⚠ Not saved yet, retrying…", loggedout: "⚠ Logged out: log in again to save" };
+    const labels = { saved: ["✓", "Saved"], saving: ["…", "Saving"], pending: ["…", "Saving"], error: ["⚠", "Not saved yet, retrying…"], loggedout: ["⚠", "Logged out: log in again to save"] };
     ACC.onSaveState(state => {
       const el = top.querySelector(".save-state");
       if (!el) return;
-      el.textContent = labels[state] || "";
-      el.className = "save-state" + (state === "error" || state === "loggedout" ? " warn" : "");
+      const [ico, txt] = labels[state] || ["", ""];
+      el.querySelector(".ico").textContent = ico;
+      el.querySelector(".txt").textContent = txt;
+      el.title = txt;
+      el.className = "save-state" + (state === "error" || state === "loggedout" ? " warn" : state === "saved" ? "" : " busy");
     });
   }
   function updateProgress() {
