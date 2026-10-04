@@ -1,10 +1,16 @@
-# Netlify settings: build the student-only site into dist/ and publish it.
+# Netlify settings: build the student-only site into dist/, and run the API (accounts, progress) as a function.
 [build]
   command = "node _build/site.js"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "22"
+
+# netlify/functions/api.mjs answers /api/*. It needs MONGODB_URI and TEACHER_PASSWORD (set in the Netlify UI).
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["mongodb"]
 
 [[headers]]
   for = "/*"

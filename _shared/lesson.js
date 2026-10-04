@@ -1,23 +1,45 @@
 /* micro:bit Lab: lesson engine.
-   Each lesson page defines window.LESSON = {...} and loads minibit.js, diagram.js and this file.
-   Add ?teacher to the URL to unlock all solutions and show answers. */
-(function () {
+   Each lesson page defines window.LESSON = {...} and loads minibit.js, diagram.js, account.js and this file.
+   Students log in on the home page: their progress is saved to their account (and their group's).
+   The teacher login shows every answer and solution. If the server can't be reached, work is kept on this computer. */
+(async function () {
   "use strict";
   const L = window.LESSON;
   if (!L) { document.body.textContent = "LESSON data missing."; return; }
-  const params = new URLSearchParams(location.search);
-  const TEACHER = params.has("teacher");
-  const KEY = "mblab:v1:" + L.id;
-  const GKEY = "mblab:v1:group";
+  const ACC = window.MBAccount;
   const { ICONS, toMatrix, ledThumb } = window.MiniBitUtil;
+  document.body.classList.add("track-" + L.track);
+
+  /* ---------------- who is working? ---------------- */
+  const loader = document.createElement("div");
+  loader.className = "page-loading";
+  loader.innerHTML = '<span class="spinner"></span> Loading your lesson…';
+  document.body.appendChild(loader);
+  const session = ACC ? await ACC.bootLesson(L) : { mode: "offline" };
+  loader.remove();
+  if (session.mode === "redirect") return;
+  if (session.mode === "wrong-track") {
+    const other = L.track === "A" ? "Track A (EB7 – EB8)" : "Track B (EB9 – Second)";
+    document.body.innerHTML = `<main class="portal"><section class="card id-card"><div class="big-emo">🧭</div><h2>This lesson is for ${other}</h2><p>Your class, ${session.user.class}, has its own lessons.</p><a class="btn primary big" href="${(L.portal || "../../index.html")}">Go to my lessons</a></section></main>`;
+    return;
+  }
+  const TEACHER = session.mode === "teacher";
+  const STUDENT = session.mode === "student" ? session.user : null;
+  const KEY = "mblab:v1:" + (STUDENT ? STUDENT.id : TEACHER ? "teacher" : "local") + ":" + L.id;
+  const GKEY = "mblab:v1:roles:" + (STUDENT ? STUDENT.id : "local");
 
   /* ---------------- helpers ---------------- */
+  let onStoreChange = null; // set once the progress counters exist
   const store = {
-    data: (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })(),
+    data: STUDENT ? (session.data || {}) : (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })(),
     get(k, d) { return Object.prototype.hasOwnProperty.call(this.data, k) ? this.data[k] : d; },
-    set(k, v) { this.data[k] = v; try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) { /* storage blocked */ } },
-    reset() { this.data = {}; try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } }
+    set(k, v) { this.data[k] = v; persist(); },
+    reset() { this.data = {}; persist(); }
   };
+  function persist() {
+    if (STUDENT) { if (onStoreChange) onStoreChange(); return; } // saved to the account
+    try { localStorage.setItem(KEY, JSON.stringify(store.data)); } catch (e) { /* storage blocked */ }
+  }
   function h(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
   function rich(s) {
@@ -181,6 +203,12 @@
   function loadGroup() { try { return JSON.parse(localStorage.getItem(GKEY)) || null; } catch (e) { return null; } }
   function saveGroup() { try { localStorage.setItem(GKEY, JSON.stringify(group)); } catch (e) { /* ignore */ } }
   let group = loadGroup();
+  if (STUDENT) {
+    const fresh = !group || !group.savedAt || Date.now() - group.savedAt > 90 * 60000;
+    group = fresh ? { rot: 0, rotateAt: Date.now() + ROTATE_MS, savedAt: Date.now(), askedGroup: false } : group;
+    group.names = [STUDENT].concat(session.group || []).map(u => ACC.firstName(u.name));
+    saveGroup();
+  }
   function assignments() {
     const names = (group && group.names ? group.names : []).filter(Boolean);
     const n = names.length, rot = group ? group.rot || 0 : 0;
@@ -196,7 +224,6 @@
   }
 
   /* ---------------- page skeleton ---------------- */
-  document.body.classList.add("track-" + L.track);
   document.title = `${L.id} · ${L.title} | micro:bit Lab`;
   const portalHref = L.portal || "../../index.html";
   const brandSvg = `<svg viewBox="0 0 24 24" aria-hidden="true">${[0, 1, 2].map(r => [0, 1, 2].map(c => `<circle cx="${6 + c * 6}" cy="${6 + r * 6}" r="2.1" fill="#fff" opacity="${(r + c) % 2 ? 1 : .55}"/>`).join("")).join("")}</svg>`;
@@ -208,7 +235,11 @@
         <div class="lesson-id"><span class="kicker">${esc(L.trackLabel)} · Lesson ${L.number}</span><span class="title">${esc(L.title)}</span></div>
         <div class="spacer"></div>
         <div class="progress-wrap"><span class="label">Progress</span><div class="progress-bar"><span></span></div><span class="pct">0%</span></div>
+        <div class="acct">${STUDENT ? `<span class="acct-name" title="${esc(STUDENT.name)} · ${esc(STUDENT.id)}">👤 ${esc(ACC.firstName(STUDENT.name))}</span><span class="save-state" aria-live="polite">✓ Saved</span>`
+          : TEACHER ? `<span class="acct-name">👩‍🏫 Teacher</span>` : `<span class="save-state warn">Not logged in</span>`}</div>
       </div>
+      ${STUDENT && session.offline ? `<div class="net-banner">⚠️ The server can't be reached. Your work is kept on this computer and saved to your account when the connection comes back.</div>`
+        : !STUDENT && !TEACHER ? `<div class="net-banner">⚠️ The website's server can't be reached, so nobody is logged in: your work is saved on this computer only.</div>` : ""}
       <div class="roles"><div class="roles-inner"></div></div>
     </header>`);
   document.body.appendChild(top);
@@ -250,6 +281,15 @@
   setInterval(tick, 1000);
 
   function openGroupModal() {
+    if (STUDENT && ACC) {
+      ACC.openGroupManager(team => {
+        group.names = [STUDENT].concat(team).map(u => ACC.firstName(u.name));
+        group.askedGroup = true;
+        saveGroup(); renderRoles();
+        if (team.length) toast(`Saving for ${team.length + 1} students: ${group.names.join(", ")} 👋`);
+      });
+      return;
+    }
     const names = (group && group.names) || [];
     const m = h(`
       <div class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="gm-title">
@@ -287,6 +327,35 @@
     done.add(id); store.set("done", [...done]);
     updateProgress();
     if (!silent) { tones(SOUNDS.ok, "sine"); toast("✓ Section complete!"); }
+  }
+  /** What the dashboard and the home page show: % done and quiz scores. */
+  function summary() {
+    const n = countable.filter(x => done.has(x.id)).length;
+    const out = { percent: Math.round(100 * n / countable.length), done: n, total: countable.length };
+    const score = q => {
+      const ans = q.questions.map((qq, i) => store.get(`quiz:${q.id}:${i}`, null));
+      return { right: ans.filter((a, i) => a === q.questions[i].answer).length, answered: ans.filter(a => a != null).length, total: q.questions.length };
+    };
+    const quizzes = L.sections.filter(x => x.type === "quiz");
+    const exit = quizzes.filter(q => !q.diagnostic).pop();
+    if (exit) out.quiz = score(exit);
+    const diag = quizzes.find(q => q.diagnostic);
+    if (diag) {
+      out.diag = score(diag);
+      const band = (diag.bands || []).slice().sort((a, b) => b.min - a.min).find(b => out.diag.right >= b.min);
+      if (band && out.diag.answered === out.diag.total) out.diag.route = band.label;
+    }
+    return out;
+  }
+  if (STUDENT) {
+    onStoreChange = () => ACC.queueSave(L.id, store.data, summary());
+    const labels = { saved: "✓ Saved", saving: "Saving…", pending: "Saving…", error: "⚠ Not saved yet, retrying…", loggedout: "⚠ Logged out: log in again to save" };
+    ACC.onSaveState(state => {
+      const el = top.querySelector(".save-state");
+      if (!el) return;
+      el.textContent = labels[state] || "";
+      el.className = "save-state" + (state === "error" || state === "loggedout" ? " warn" : "");
+    });
   }
   function updateProgress() {
     const pct = Math.round(100 * countable.filter(s => done.has(s.id)).length / countable.length);
@@ -1032,11 +1101,18 @@
 
   /* footer */
   const foot = h(`<footer class="page-foot">micro:bit Lab · ${esc(L.trackLabel)} · ${esc(L.id)} &nbsp;·&nbsp; <button type="button" class="btn small ghost" data-act="reset">↺ Reset this page</button></footer>`);
-  foot.querySelector("button").onclick = () => { if (confirm("Clear all progress on this page for this computer?")) { store.reset(); location.reload(); } };
+  foot.querySelector("button").onclick = async () => {
+    if (!confirm(STUDENT ? "Clear all your progress in this lesson? (Your teammates' copies don't change.)" : "Clear all progress on this page for this computer?")) return;
+    store.reset();
+    if (STUDENT) await ACC.flush();
+    location.reload();
+  };
   document.body.appendChild(foot);
 
   /* help drawer */
   const HELP = (L.help || []).concat([
+    { q: "It says “Not saved yet” at the top", a: "The internet connection dropped. Keep working: the page keeps trying and saves everything when the connection comes back. Wait for <b>✓ Saved</b> before you close the page." },
+    { q: "I forgot my ID or password", a: "Ask your teacher: they can find your ID and give you a new password." },
     { q: "The Download button doesn't send my program to the micro:bit", a: "Use <b>Chrome</b> or <b>Edge</b>. Click the three dots <b>⋯</b> next to Download, choose <b>Connect device</b> and follow the steps. Still stuck? Use drag &amp; drop: download the .hex file and drag it onto the <b>MICROBIT</b> drive." },
     { q: "The computer can't find my micro:bit", a: "Unplug the cable and plug it back in. Try another USB port. Some cables can only charge and can't send programs: ask your teacher for another cable." },
     { q: "It works in the simulator but not on the micro:bit", a: "You probably forgot to <b>download again</b> after your last change. Every time you change the code, download it again." },
@@ -1065,6 +1141,11 @@
 
   renderRoles();
   updateProgress();
-  const stale = !group || !group.savedAt || Date.now() - group.savedAt > 90 * 60000;
-  if (stale && !TEACHER && L.roles !== false) openGroupModal();
+  if (STUDENT) {
+    if (session.recovered && onStoreChange) onStoreChange(); // send work kept on this computer
+    if (!group.askedGroup && !(session.group || []).length && L.roles !== false) openGroupModal();
+  } else {
+    const stale = !group || !group.savedAt || Date.now() - group.savedAt > 90 * 60000;
+    if (stale && !TEACHER && L.roles !== false) openGroupModal();
+  }
 })();

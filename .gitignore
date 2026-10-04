@@ -4,8 +4,14 @@
 /*
 !/.gitignore
 !/netlify.toml
+!/package.json
+!/package-lock.json
 !/index.html
+!/teacher.html
 !/_shared/
+
+# Server code (accounts and progress). Secrets live in Netlify settings, never in files.
+!/netlify/
 
 # Lesson folders: only the student page and its lesson content
 !/Track_A_EB7-EB8/

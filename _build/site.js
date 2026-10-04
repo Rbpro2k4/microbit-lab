@@ -1,5 +1,6 @@
 // Builds the public student website into dist/ (run by Netlify on every update).
-// Only student files are copied: index.html, _shared/, and each lesson's *_student.html + *_lesson.js.
+// Only student files are copied: index.html, teacher.html (the dashboard), _shared/,
+// and each lesson's *_student.html + *_lesson.js. The server code (netlify/functions) is deployed by Netlify separately.
 // Teacher plans, slides, worksheets, solution code and the build folder never reach the website.
 const fs = require("fs");
 const path = require("path");
@@ -18,6 +19,7 @@ function copy(rel) {
 }
 
 copy("index.html");
+copy("teacher.html");
 for (const f of fs.readdirSync(path.join(ROOT, "_shared"))) copy(path.posix.join("_shared", f));
 for (const track of fs.readdirSync(ROOT).filter(d => d.startsWith("Track_"))) {
   for (const lesson of fs.readdirSync(path.join(ROOT, track))) {
@@ -29,9 +31,11 @@ for (const track of fs.readdirSync(ROOT).filter(d => d.startsWith("Track_"))) {
 // Keep the site out of search engines.
 fs.writeFileSync(path.join(OUT, "robots.txt"), "User-agent: *\nDisallow: /\n");
 
-// Every lesson linked from the home page must exist in the site.
-const index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
-const missing = [...index.matchAll(/"(Track_[^"]+_student\.html)"/g)].map(m => m[1]).filter(p => !copied.includes(p));
-if (missing.length) { console.error("Missing lesson pages:\n  " + missing.join("\n  ")); process.exit(1); }
+// Every published lesson in the lesson list must exist in the site.
+const list = fs.readFileSync(path.join(ROOT, "_shared/lessons.js"), "utf8");
+const missing = [...list.matchAll(/folder: "([^"]+)", file: "([^"]+)"/g)]
+  .flatMap(m => [`${m[1]}/${m[2]}_student.html`, `${m[1]}/${m[2]}_lesson.js`])
+  .filter(p => !copied.includes(p));
+if (missing.length) { console.error("Missing lesson files:\n  " + missing.join("\n  ")); process.exit(1); }
 
 console.log(`Student site built in dist/ (${copied.length} files):\n  ` + copied.join("\n  "));

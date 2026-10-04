@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teacher dashboard | micro:bit Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_shared/lesson.css">
+</head>
+<body class="dash-body">
+<header class="dash-top">
+  <a class="brand" href="index.html"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.1" fill="#fff"/><circle cx="12" cy="6" r="2.1" fill="#fff" opacity=".55"/><circle cx="18" cy="6" r="2.1" fill="#fff"/><circle cx="6" cy="12" r="2.1" fill="#fff" opacity=".55"/><circle cx="12" cy="12" r="2.1" fill="#fff"/><circle cx="18" cy="12" r="2.1" fill="#fff" opacity=".55"/><circle cx="6" cy="18" r="2.1" fill="#fff"/><circle cx="12" cy="18" r="2.1" fill="#fff" opacity=".55"/><circle cx="18" cy="18" r="2.1" fill="#fff"/></svg></span><span>micro:bit Lab</span></a>
+  <h1>Teacher dashboard</h1>
+  <span class="spacer"></span>
+  <span class="dash-db" id="db-tag"></span>
+  <a class="btn small ghost" href="index.html">🏠 Lessons</a>
+  <button type="button" class="btn small ghost" id="logout" hidden>Log out</button>
+</header>
+<main class="dash" id="app" aria-live="polite"></main>
+<script src="_shared/lessons.js"></script>
+<script src="_shared/account.js"></script>
+<script>
+(function () {
+  "use strict";
+  const A = window.MBAccount, T = A.teacher, esc = A.esc;
+  const app = document.getElementById("app");
+  const h = html => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+  const fmtLeft = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  const ago = d => {
+    if (!d) return "never";
+    const m = Math.round((Date.now() - new Date(d)) / 60000);
+    if (m < 1) return "just now"; if (m < 60) return m + " min ago";
+    const hrs = Math.round(m / 60); if (hrs < 24) return hrs + " h ago";
+    return new Date(d).toLocaleDateString();
+  };
+  const CLASSES = Object.keys(window.MB_CLASSES);
+  const state = { cls: localStorage.getItem("mblab:dash:class") || "EB7", data: null, signup: null, timer: null, refresh: null };
+  let toastWrap = null;
+  function toast(msg) {
+    if (!toastWrap) { toastWrap = h(`<div class="toast-wrap"></div>`); document.body.appendChild(toastWrap); }
+    const t = h(`<div class="toast"></div>`); t.textContent = msg; toastWrap.appendChild(t); setTimeout(() => t.remove(), 3500);
+  }
+  function modal(html, onReady) {
+    const m = h(`<div class="modal-backdrop" role="dialog" aria-modal="true"><div class="modal">${html}</div></div>`);
+    document.body.appendChild(m);
+    const close = () => m.remove();
+    m.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+    m.addEventListener("click", e => { if (e.target === m) close(); });
+    m.querySelectorAll("[data-close]").forEach(b => b.onclick = close);
+    if (onReady) onReady(m, close);
+    const f = m.querySelector("input, select, button"); if (f) setTimeout(() => f.focus(), 50);
+    return m;
+  }
+  const WORDS = ["tiger", "robot", "pixel", "comet", "panda", "laser", "mango", "river", "rocket", "falcon", "cedar", "orbit"];
+  const suggestPassword = () => WORDS[Math.floor(Math.random() * WORDS.length)] + "-" + (10 + Math.floor(Math.random() * 90));
+
+  /* ---------- login ---------- */
+  function showLogin(msg) {
+    document.getElementById("logout").hidden = true;
+    app.innerHTML = "";
+    const c = h(`
+      <section class="card auth-card" style="margin-top:40px">
+        <h2>👩‍🏫 Teacher login</h2>
+        <form class="auth-form" autocomplete="off">
+          <label class="field">Teacher password<input name="password" type="password" required></label>
+          <button class="btn primary big" type="submit">Log in</button>
+          <p class="feedback ${msg ? "show bad" : ""}">${esc(msg || "")}</p>
+        </form>
+      </section>`);
+    const f = c.querySelector("form"), fb = f.querySelector(".feedback");
+    f.onsubmit = async e => {
+      e.preventDefault();
+      const b = f.querySelector("button"); b.disabled = true;
+      try { await A.teacherLogin(f.password.value); start(); }
+      catch (err) { fb.className = "feedback show bad"; fb.textContent = err.message; b.disabled = false; }
+    };
+    app.appendChild(c);
+    setTimeout(() => f.password.focus(), 50);
+  }
+
+  /* ---------- lesson structures (to show details) ---------- */
+  const lessonCache = {};
+  let loadChain = Promise.resolve();
+  function loadLesson(meta) {
+    if (lessonCache[meta.id]) return lessonCache[meta.id];
+    lessonCache[meta.id] = loadChain = loadChain.then(() => new Promise((resolve, reject) => {
+      delete window.LESSON;
+      const s = document.createElement("script");
+      s.src = meta.data;
+      s.onload = () => { resolve(window.LESSON); s.remove(); };
+      s.onerror = () => reject(new Error("Could not load lesson " + meta.id));
+      document.head.appendChild(s);
+    }));
+    return lessonCache[meta.id];
+  }
+
+  /* ---------- dashboard ---------- */
+  function trackLessons(cls) { return window.MB_TRACKS[window.MB_CLASSES[cls]].lessons.filter(l => l.page); }
+  async function load() {
+    const d = await T.overview(state.cls);
+    state.data = d; state.signup = d.signup;
+    return d;
+  }
+  function render() {
+    const d = state.data;
+    app.innerHTML = "";
+    // sign-up + class actions
+    const top = h(`
+      <section class="dash-panels">
+        <div class="card dash-signup">
+          <div class="dash-signup-state"></div>
+          <div class="row"><button type="button" class="btn primary" data-act="open">✨ Open sign-up for 10 minutes</button><button type="button" class="btn ghost" data-act="close">Close sign-up</button></div>
+          <p class="dash-site">Students go to <b>${esc(location.host)}</b></p>
+        </div>
+        <div class="card dash-class-actions">
+          <h3>End of class</h3>
+          <p class="muted">Logs every student out on every computer, so the next class can't use their accounts.</p>
+          <button type="button" class="btn" data-act="logout-all">🚪 Log out all students</button>
+        </div>
+      </section>`);
+    app.appendChild(top);
+    drawSignup(top.querySelector(".dash-signup-state"));
+    top.querySelector('[data-act="open"]').onclick = () => setSignup(10);
+    top.querySelector('[data-act="close"]').onclick = () => setSignup(0);
+    top.querySelector('[data-act="logout-all"]').onclick = async () => {
+      if (!confirm("Log out all students now?")) return;
+      try { const r = await T.logoutStudents(); toast(`${r.count} student session${r.count === 1 ? "" : "s"} closed.`); } catch (e) { toast(e.message); }
+    };
+
+    // class tabs
+    const tabs = h(`<div class="dash-tabs" role="tablist">${CLASSES.map(c => `<button type="button" role="tab" data-cls="${c}" class="${c === state.cls ? "on" : ""}">${c}</button>`).join("")}<span class="spacer"></span><span class="muted dash-updated"></span><button type="button" class="btn small ghost" data-act="refresh">↻ Refresh</button><button type="button" class="btn small ghost" data-act="csv">⬇ CSV</button><button type="button" class="btn small primary" data-act="add">＋ Add student</button></div>`);
+    tabs.querySelectorAll("[data-cls]").forEach(b => b.onclick = () => { state.cls = b.dataset.cls; localStorage.setItem("mblab:dash:class", state.cls); refresh(true); });
+    tabs.querySelector('[data-act="refresh"]').onclick = () => refresh(true);
+    tabs.querySelector('[data-act="csv"]').onclick = downloadCsv;
+    tabs.querySelector('[data-act="add"]').onclick = addStudent;
+    tabs.querySelector(".dash-updated").textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    app.appendChild(tabs);
+
+    // table
+    const lessons = trackLessons(state.cls);
+    const prog = {};
+    d.progress.forEach(p => { (prog[p.studentId] = prog[p.studentId] || {})[p.lesson] = p; });
+    const wrap = h(`<div class="card dash-table-wrap"></div>`);
+    if (!d.students.length) {
+      wrap.innerHTML = `<div class="empty-state"><div class="big-emo">🧑‍🎓</div><h3>No students in ${esc(state.cls)} yet</h3><p>Open sign-up in class and students create their own accounts, or add them yourself with <b>＋ Add student</b>.</p></div>`;
+      app.appendChild(wrap);
+      return;
+    }
+    const table = h(`<table class="dash-table"><thead><tr><th>ID</th><th>Name</th><th>Last login</th>${lessons.map(l => `<th title="${esc(l.title)}">${l.id}</th>`).join("")}<th></th></tr></thead><tbody></tbody></table>`);
+    const tb = table.querySelector("tbody");
+    d.students.forEach(s => {
+      const cells = lessons.map(l => {
+        const p = prog[s.id] && prog[s.id][l.id];
+        const sm = p && p.summary;
+        if (!p) return `<td class="lc empty" data-lesson="${l.id}">–</td>`;
+        const pct = sm && sm.percent != null ? sm.percent : 0;
+        const q = sm && sm.quiz && sm.quiz.answered === sm.quiz.total ? `<span class="q" title="Exit ticket">${sm.quiz.right}/${sm.quiz.total}</span>` : "";
+        const grp = p.updatedBy && p.updatedBy !== s.id ? `<span class="g" title="Saved by group member ${esc(p.updatedBy)}">👥</span>` : "";
+        return `<td class="lc" data-lesson="${l.id}" title="Click for details"><span class="pbar" style="--p:${pct}%"></span><span class="pv">${pct}%</span>${q}${grp}</td>`;
+      }).join("");
+      const tr = h(`<tr><td class="mono">${esc(s.id)}</td><td><b>${esc(s.name)}</b>${s.locked ? ` <span title="Locked after too many wrong passwords. Reset the password to unlock.">🔒</span>` : ""}</td><td class="muted">${ago(s.lastLogin)}</td>${cells}<td class="acts"><button type="button" class="btn small ghost" data-act="pw" title="Reset password">🔑</button><button type="button" class="btn small ghost" data-act="edit" title="Edit">✏️</button><button type="button" class="btn small ghost" data-act="del" title="Delete">🗑</button></td></tr>`);
+      tr.querySelectorAll(".lc").forEach(td => td.onclick = () => { if (!td.classList.contains("empty")) showDetails(s, lessons.find(l => l.id === td.dataset.lesson)); });
+      tr.querySelector('[data-act="pw"]').onclick = () => resetPassword(s);
+      tr.querySelector('[data-act="edit"]').onclick = () => editStudent(s);
+      tr.querySelector('[data-act="del"]').onclick = () => deleteStudent(s);
+      tb.appendChild(tr);
+    });
+    wrap.appendChild(table);
+    app.appendChild(wrap);
+    app.appendChild(h(`<p class="muted dash-legend">Each lesson shows progress %, the exit ticket score when finished, and 👥 when a group member saved it. Click a lesson cell for details. The page refreshes every 30 seconds.</p>`));
+  }
+  function drawSignup(el) {
+    clearInterval(state.timer);
+    const s = state.signup;
+    const paint = () => {
+      const left = s.open ? new Date(s.endsAt) - Date.now() : 0;
+      if (s.open && left <= 0) { s.open = false; }
+      el.innerHTML = s.open
+        ? `<span class="pill on">● Sign-up OPEN</span><span class="dash-count">${fmtLeft(left)}</span><span class="muted">left</span>`
+        : `<span class="pill off">● Sign-up closed</span><span class="muted">Students can only log in.</span>`;
+      if (!s.open) clearInterval(state.timer);
+    };
+    paint();
+    if (s.open) state.timer = setInterval(paint, 1000);
+  }
+  async function setSignup(minutes) {
+    try { const r = await T.signup(minutes); state.signup = r.signup; drawSignup(document.querySelector(".dash-signup-state")); toast(minutes ? "Sign-up is open for 10 minutes." : "Sign-up closed."); }
+    catch (e) { handleError(e); }
+  }
+
+  /* ---------- student actions ---------- */
+  function classSelect(value) { return `<select name="cls" required>${CLASSES.map(c => `<option ${c === value ? "selected" : ""}>${c}</option>`).join("")}</select>`; }
+  function addStudent() {
+    modal(`
+      <h2>＋ Add a student</h2>
+      <form class="auth-form" autocomplete="off">
+        <label class="field">Full name<input name="fullname" maxlength="60" required></label>
+        <label class="field">Class${classSelect(state.cls)}</label>
+        <label class="field">Password<input name="password" maxlength="60" required></label>
+        <div class="row"><button class="btn primary" type="submit">Create account</button><button class="btn ghost" type="button" data-close>Cancel</button></div>
+        <p class="feedback"></p>
+      </form>`, (m, close) => {
+      const f = m.querySelector("form"), fb = f.querySelector(".feedback");
+      f.password.value = suggestPassword();
+      f.onsubmit = async e => {
+        e.preventDefault();
+        try {
+          const r = await T.addStudent(f.fullname.value, f.cls.value, f.password.value);
+          close();
+          modal(`<h2>✅ Account created</h2><p>Give these to <b>${esc(r.student.name)}</b>:</p><div class="id-big">${esc(r.student.id)}</div><p>Password: <b class="mono">${esc(f.password.value)}</b></p><div class="row"><button class="btn primary" data-close>Done</button></div>`);
+          refresh();
+        } catch (err) { fb.className = "feedback show bad"; fb.textContent = err.message; }
+      };
+    });
+  }
+  function resetPassword(s) {
+    modal(`
+      <h2>🔑 New password for ${esc(s.name)}</h2>
+      <p class="muted">Encrypted passwords can't be shown, so you give the student a new one. It also unlocks the account and logs the student out everywhere.</p>
+      <form class="auth-form" autocomplete="off">
+        <label class="field">New password<input name="password" maxlength="60" required></label>
+        <div class="row"><button class="btn primary" type="submit">Set password</button><button class="btn ghost" type="button" data-close>Cancel</button></div>
+        <p class="feedback"></p>
+      </form>`, (m, close) => {
+      const f = m.querySelector("form"), fb = f.querySelector(".feedback");
+      f.password.value = suggestPassword();
+      f.password.select();
+      f.onsubmit = async e => {
+        e.preventDefault();
+        try {
+          await T.setPassword(s.id, f.password.value);
+          close();
+          modal(`<h2>✅ Password changed</h2><p>Tell <b>${esc(s.name)}</b>:</p><p>ID <b class="mono">${esc(s.id)}</b> · password <b class="mono">${esc(f.password.value)}</b></p><div class="row"><button class="btn primary" data-close>Done</button></div>`);
+          refresh();
+        } catch (err) { fb.className = "feedback show bad"; fb.textContent = err.message; }
+      };
+    });
+  }
+  function editStudent(s) {
+    modal(`
+      <h2>✏️ Edit ${esc(s.id)}</h2>
+      <form class="auth-form" autocomplete="off">
+        <label class="field">Full name<input name="fullname" maxlength="60" required value="${esc(s.name)}"></label>
+        <label class="field">Class${classSelect(s.class)}</label>
+        <p class="muted">Moving a student to a class on the other track changes which lessons they see. Their ID stays the same.</p>
+        <div class="row"><button class="btn primary" type="submit">Save</button><button class="btn ghost" type="button" data-close>Cancel</button></div>
+        <p class="feedback"></p>
+      </form>`, (m, close) => {
+      const f = m.querySelector("form"), fb = f.querySelector(".feedback");
+      f.onsubmit = async e => {
+        e.preventDefault();
+        try { await T.updateStudent(s.id, f.fullname.value, f.cls.value); close(); toast("Saved."); refresh(); }
+        catch (err) { fb.className = "feedback show bad"; fb.textContent = err.message; }
+      };
+    });
+  }
+  async function deleteStudent(s) {
+    if (!confirm(`Delete ${s.name} (${s.id}) and all their progress? This can't be undone.`)) return;
+    try { await T.deleteStudent(s.id); toast(`${s.name} deleted.`); refresh(); } catch (e) { handleError(e); }
+  }
+
+  /* ---------- lesson details ---------- */
+  async function showDetails(s, meta) {
+    const m = modal(`<h2>${esc(s.name)} · ${esc(meta.id)} ${esc(meta.title)}</h2><div class="det-body"><div class="loading-line"><span class="spinner"></span> Loading…</div></div><div class="row" style="margin-top:14px"><button class="btn primary" data-close>Close</button><button class="btn ghost" data-act="clear">Clear this lesson</button></div>`);
+    m.querySelector(".modal").classList.add("wide");
+    m.querySelector('[data-act="clear"]').onclick = async () => {
+      if (!confirm(`Clear ${s.name}'s progress in ${meta.id}? This can't be undone.`)) return;
+      try { await T.clearLesson(s.id, meta.id); m.remove(); toast("Lesson cleared."); refresh(); } catch (e) { handleError(e); }
+    };
+    const body = m.querySelector(".det-body");
+    try {
+      const [L, p] = await Promise.all([loadLesson(meta), T.progress(s.id, meta.id)]);
+      const d = p.data || {};
+      const done = new Set(d.done || []);
+      const parts = [];
+      parts.push(`<p class="muted">Last saved ${ago(p.updatedAt)}${p.updatedBy && p.updatedBy !== s.id ? ` by group member <b>${esc(p.updatedBy)}</b>` : ""}.</p>`);
+      const numbered = L.sections.filter(x => !["glossary", "next", "text"].includes(x.type));
+      parts.push(`<h3>Sections</h3><ul class="det-list">${numbered.map(x => {
+        let extra = "";
+        if (x.type === "mission") { const st = d["mission:" + x.id] || { checked: [] }; extra = ` · ${st.checked.length}/${x.steps.length} steps ticked`; }
+        if (x.type === "robot") { const st = d["robot:" + x.id]; extra = st ? ` · levels done: ${(st.done || []).map(i => i + 1).sort().join(", ") || "none"}` : ""; }
+        return `<li class="${done.has(x.id) ? "ok" : ""}">${done.has(x.id) ? "✓" : "○"} ${esc(x.title)}${x.optional ? " <span class='muted'>(optional)</span>" : ""}<span class="muted">${extra}</span></li>`;
+      }).join("")}</ul>`);
+      L.sections.filter(x => x.type === "quiz").forEach(q => {
+        const answers = q.questions.map((qq, i) => d[`quiz:${q.id}:${i}`]);
+        if (answers.every(a => a == null)) return;
+        const right = answers.filter((a, i) => a === q.questions[i].answer).length;
+        parts.push(`<h3>${esc(q.title)} · ${right}/${q.questions.length}</h3><ol class="det-quiz">${q.questions.map((qq, i) => {
+          const a = answers[i];
+          if (a == null) return `<li class="muted">not answered</li>`;
+          const ok = a === qq.answer;
+          return `<li class="${ok ? "ok" : "bad"}">${ok ? "✓" : "✗"} ${"ABCD"[a]}${ok ? "" : ` <span class="muted">(right: ${"ABCD"[qq.answer]})</span>`}</li>`;
+        }).join("")}</ol>`);
+      });
+      const refl = d.reflect;
+      if (refl) {
+        const objs = L.objectives || [];
+        const dot = v => ["", "🔴 Not yet", "🟡 Getting there", "🟢 Got it"][v] || "–";
+        const strip = t => String(t).replace(/\{\{([^}|]+)(?:\|[^}]+)?\}\}/g, "$1").replace(/<[^>]+>/g, "");
+        parts.push(`<h3>Self-assessment</h3><ul class="det-list">${objs.map((o, i) => `<li>${dot(refl.r && refl.r[i])} · ${esc(strip(o))}</li>`).join("")}</ul>`);
+        const prompts = (L.sections.find(x => x.type === "reflect") || {}).prompts || [];
+        const texts = prompts.map((pr, i) => refl.text && refl.text[i] ? `<p><b>${esc(pr)}</b><br>${esc(refl.text[i])}</p>` : "").join("");
+        if (texts) parts.push(`<h3>Reflection</h3>${texts}`);
+      }
+      body.innerHTML = parts.join("");
+    } catch (e) { body.innerHTML = `<p class="feedback show bad">${esc(e.message)}</p>`; }
+  }
+
+  /* ---------- CSV ---------- */
+  function downloadCsv() {
+    const d = state.data, lessons = trackLessons(state.cls);
+    const prog = {}; d.progress.forEach(p => { (prog[p.studentId] = prog[p.studentId] || {})[p.lesson] = p; });
+    const q = v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+    const rows = [["ID", "Name", "Class", "Last login", ...lessons.flatMap(l => [`${l.id} %`, `${l.id} exit ticket`])]];
+    d.students.forEach(s => rows.push([s.id, s.name, s.class, s.lastLogin ? new Date(s.lastLogin).toLocaleString() : "", ...lessons.flatMap(l => {
+      const sm = prog[s.id] && prog[s.id][l.id] && prog[s.id][l.id].summary;
+      return [sm ? sm.percent : "", sm && sm.quiz && sm.quiz.answered === sm.quiz.total ? `${sm.quiz.right}/${sm.quiz.total}` : ""];
+    })]));
+    const blob = new Blob(["﻿" + rows.map(r => r.map(q).join(",")).join("\r\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `microbit-lab-${state.cls}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  /* ---------- start ---------- */
+  function handleError(e) { if (e.status === 401) showLogin("Please log in again."); else toast(e.message); }
+  async function refresh(showSpinner) {
+    if (showSpinner) app.querySelectorAll(".dash-table-wrap").forEach(w => w.style.opacity = ".5");
+    try { await load(); render(); } catch (e) { handleError(e); }
+  }
+  async function start() {
+    if (A.role !== "teacher") return showLogin();
+    document.getElementById("logout").hidden = false;
+    app.innerHTML = `<div class="loading-line"><span class="spinner"></span> Loading…</div>`;
+    try {
+      const s = await A.status();
+      document.getElementById("db-tag").innerHTML = s.database === "live" ? "" : `<span class="pill test">TEST database</span>`;
+      await load(); render();
+      clearInterval(state.refresh);
+      state.refresh = setInterval(() => { if (document.visibilityState === "visible" && !document.querySelector(".modal-backdrop")) refresh(); }, 30000);
+    } catch (e) { handleError(e); }
+  }
+  document.getElementById("logout").onclick = async () => { await A.logout(); clearInterval(state.refresh); showLogin(); };
+  start();
+})();
+</script>
+</body>
+</html>

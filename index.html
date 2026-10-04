@@ -12,59 +12,204 @@
 <body>
 <main class="portal">
   <div class="portal-hero">
-    <div id="hero-mb" style="max-width:220px;margin:0 auto 12px"></div>
+    <div id="hero-mb" style="max-width:200px;margin:0 auto 10px"></div>
     <h1>micro:bit Lab</h1>
-    <p class="lead">Choose your track, then open today's lesson.</p>
+    <p class="lead" id="hero-sub">Loading…</p>
   </div>
-  <div class="tracks">
-    <section class="card track-card A">
-      <h2>🧭 Track A · Explorers</h2>
-      <p class="lead">EB7 – EB8 · MakeCode blocks</p>
-      <ul class="lesson-list" id="list-A"></ul>
-    </section>
-    <section class="card track-card B">
-      <h2>🛠️ Track B · Engineers</h2>
-      <p class="lead">EB9 – Seconde · Blocks, then Python</p>
-      <ul class="lesson-list" id="list-B"></ul>
-    </section>
-  </div>
-  <footer class="page-foot">Term 1 · October – December</footer>
+  <div id="app" aria-live="polite"></div>
+  <footer class="page-foot"><a href="teacher.html">👩‍🏫 Teacher</a></footer>
 </main>
 <script src="_shared/minibit.js"></script>
+<script src="_shared/lessons.js"></script>
+<script src="_shared/account.js"></script>
 <script>
-  // href: null = not published yet
-  const LESSONS = {
-    A: [
-      ["A1", "Meet the micro:bit", "Week 1", "Track_A_EB7-EB8/A01_Meet_the_microbit/A01_student.html"],
-      ["A2", "Algorithms & animation", "Week 2", "Track_A_EB7-EB8/A02_Algorithms_and_animation/A02_student.html"],
-      ["A3", "Events & inputs", "Week 3", null],
-      ["A4", "Variables", "Week 4", null],
-      ["A5", "Random & decisions", "Week 5", null],
-      ["A6", "Loops & reaction game", "Week 6", null],
-      ["A7", "Sensors 1: light & temperature", "Week 7", null],
-      ["A8", "Sensors 2: motion & sound", "Week 8", null],
-      ["A9", "Radio", "Week 9", null],
-      ["A10", "Term project: Winter gadget", "Week 10", null]
-    ],
-    B: [
-      ["B1", "Crash course: meet the micro:bit", "Week 1", "Track_B_EB9-Seconde/B01_Crash_course/B01_student.html"],
-      ["B2", "Logic in blocks", "Week 2", "Track_B_EB9-Seconde/B02_Logic_in_blocks/B02_student.html"],
-      ["B3", "Hello Python", "Week 3", null],
-      ["B4", "Variables & decisions (Python)", "Week 4", null],
-      ["B5", "Lists & random", "Week 5", null],
-      ["B6", "Functions & debugging", "Week 6", null],
-      ["B7", "Sensors in Python", "Week 7", null],
-      ["B8", "Data logging & analysis", "Week 8", null],
-      ["B9", "Radio networks", "Week 9", null],
-      ["B10", "Term project & demo", "Week 10", null]
-    ]
-  };
-  for (const t of ["A", "B"]) {
-    document.getElementById("list-" + t).innerHTML = LESSONS[t].map(([id, title, wk, href]) => href
-      ? `<li><a href="${href}"><span class="code">${id}</span><span>${title}</span><span class="wk">${wk}</span></a></li>`
-      : `<li><span class="soon"><span class="code">${id}</span><span>${title}</span><span class="wk">Coming soon</span></span></li>`).join("");
-  }
+(function () {
+  "use strict";
+  const A = window.MBAccount, esc = A.esc;
+  const app = document.getElementById("app"), sub = document.getElementById("hero-sub");
+  const params = new URLSearchParams(location.search);
+  const next = (params.get("next") || "").startsWith("/") ? params.get("next") : "";
+  const h = html => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+  const fmt = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  let countdown = null;
+
   new MiniBit(document.getElementById("hero-mb"), {}).run([["loop", "forever", [["scroll", "HELLO!"], ["icon", "Heart", 900], ["icon", "SmallHeart", 500], ["icon", "Heart", 900]]]]);
+
+  function lessonList(trackId, progress, opts = {}) {
+    const t = window.MB_TRACKS[trackId];
+    const items = t.lessons.map(l => {
+      if (!l.page) return `<li><span class="soon"><span class="code">${l.id}</span><span>${esc(l.title)}</span><span class="wk">Coming soon</span></span></li>`;
+      const p = progress && progress[l.id];
+      const pct = p && p.summary ? p.summary.percent : null;
+      const badge = !progress ? `<span class="wk">Week ${l.week}</span>`
+        : pct === 100 ? `<span class="badge-pct full">✓ Done</span>`
+        : pct != null ? `<span class="badge-pct" style="--p:${pct}%">${pct}%</span>`
+        : `<span class="badge-pct new">New</span>`;
+      return `<li><a href="${l.page}"><span class="code">${l.id}</span><span>${esc(l.title)}</span>${badge}</a></li>`;
+    }).join("");
+    return `<section class="card track-card ${trackId}"><h2>${t.emoji} ${esc(t.name)}</h2><p class="lead">${esc(t.grades)} · ${esc(t.sub)}</p><ul class="lesson-list">${items}</ul></section>`;
+  }
+
+  /* ---------- not logged in ---------- */
+  function showGuest(status, tab) {
+    clearInterval(countdown);
+    const open = status.signup.open;
+    tab = tab || (open ? "signup" : "login");
+    sub.textContent = open && tab === "signup" ? "Welcome! Create your account." : "Log in to start your lesson.";
+    app.innerHTML = "";
+    const card = h(`
+      <section class="card auth-card">
+        <div class="auth-tabs" role="tablist">
+          <button type="button" role="tab" data-tab="login" class="${tab === "login" ? "on" : ""}">🔑 Log in</button>
+          <button type="button" role="tab" data-tab="signup" class="${tab === "signup" ? "on" : ""}">✨ Sign up</button>
+        </div>
+        <div class="auth-body"></div>
+      </section>`);
+    app.appendChild(card);
+    card.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => showGuest(status, b.dataset.tab));
+    const body = card.querySelector(".auth-body");
+
+    if (tab === "login") {
+      body.innerHTML = `
+        <form class="auth-form" autocomplete="off">
+          <label class="field">Your ID<input name="sid" placeholder="e.g. EB7-014" maxlength="12" autocapitalize="characters" required></label>
+          <label class="field">Password<input name="password" type="password" maxlength="60" required></label>
+          <button class="btn primary big" type="submit">Log in</button>
+          <p class="feedback"></p>
+          <p class="auth-note">Forgot your ID or password? Ask your teacher.</p>
+        </form>`;
+      const f = body.querySelector("form"), fb = f.querySelector(".feedback");
+      f.onsubmit = async e => {
+        e.preventDefault();
+        const btn = f.querySelector("button"); btn.disabled = true; fb.className = "feedback";
+        try { await A.login(f.sid.value, f.password.value); afterLogin(); }
+        catch (err) { fb.className = "feedback show bad"; fb.textContent = err.message; btn.disabled = false; }
+      };
+      setTimeout(() => f.sid.focus(), 50);
+      return;
+    }
+
+    if (!open) {
+      body.innerHTML = `<div class="auth-closed"><div class="big-emo">🔒</div><h3>Sign-up is closed</h3><p>Your teacher opens sign-up in class. Already have an account? Use <b>Log in</b>.</p></div>`;
+      return;
+    }
+    body.innerHTML = `
+      <form class="auth-form" autocomplete="off">
+        <p class="signup-timer">⏱ Sign-up is open for <b class="left">--:--</b> more</p>
+        <label class="field">Full name (first and last name)<input name="fullname" maxlength="60" placeholder="e.g. Sara Haddad" required></label>
+        <label class="field">Your class
+          <select name="cls" required><option value="">Choose…</option>${Object.keys(window.MB_CLASSES).map(c => `<option>${c}</option>`).join("")}</select>
+        </label>
+        <label class="field">Choose a password (4 or more characters)<input name="password" type="password" minlength="4" maxlength="60" required></label>
+        <label class="field">Type the password again<input name="password2" type="password" maxlength="60" required></label>
+        <button class="btn primary big" type="submit">Create my account</button>
+        <p class="feedback"></p>
+      </form>`;
+    const f = body.querySelector("form"), fb = f.querySelector(".feedback"), left = f.querySelector(".left");
+    const ends = new Date(status.signup.endsAt).getTime();
+    const tickTimer = () => {
+      const ms = ends - Date.now();
+      left.textContent = fmt(ms);
+      if (ms <= 0) { clearInterval(countdown); A.status().then(s => showGuest(s)).catch(() => showGuest({ signup: { open: false } })); }
+    };
+    tickTimer(); countdown = setInterval(tickTimer, 1000);
+    f.onsubmit = async e => {
+      e.preventDefault();
+      fb.className = "feedback";
+      if (f.password.value !== f.password2.value) { fb.className = "feedback show bad"; fb.textContent = "The two passwords are different. Type them again."; return; }
+      const btn = f.querySelector("button"); btn.disabled = true;
+      try { const r = await A.signup(f.fullname.value, f.cls.value, f.password.value); showIdCard(r.user); }
+      catch (err) { fb.className = "feedback show bad"; fb.textContent = err.message; btn.disabled = false; }
+    };
+    setTimeout(() => f.fullname.focus(), 50);
+  }
+
+  function showIdCard(user) {
+    clearInterval(countdown);
+    sub.textContent = "Your account is ready!";
+    app.innerHTML = "";
+    const c = h(`
+      <section class="card id-card">
+        <div class="big-emo">🎉</div>
+        <h2>Welcome, ${esc(A.firstName(user.name))}!</h2>
+        <p>This is your ID. You need it every time you log in.</p>
+        <div class="id-big">${esc(user.id)}</div>
+        <p class="id-tip">✍️ Write it on your worksheet now, and remember your password.</p>
+        <button class="btn primary big" type="button">I wrote it down → Continue</button>
+      </section>`);
+    c.querySelector("button").onclick = afterLogin;
+    app.appendChild(c);
+  }
+
+  function afterLogin() {
+    if (next) { location.href = next; return; }
+    start();
+  }
+
+  /* ---------- student ---------- */
+  async function showStudent() {
+    clearInterval(countdown);
+    const u = A.user;
+    sub.textContent = "Choose today's lesson.";
+    app.innerHTML = `<div class="loading-line"><span class="spinner"></span> Loading your lessons…</div>`;
+    let me, list;
+    try { [me, list] = await Promise.all([A.me(), A.progressList()]); }
+    catch (e) { if (e.status === 401) return start(); app.innerHTML = `<p class="feedback show bad">${esc(e.message)}</p>`; return; }
+    const progress = Object.fromEntries(list.lessons.map(l => [l.lesson, l]));
+    app.innerHTML = "";
+    const card = h(`
+      <section class="card student-card">
+        <div class="avatar big">${esc(A.firstName(me.user.name)[0] || "?")}</div>
+        <div class="who"><h2>Hi ${esc(A.firstName(me.user.name))}! 👋</h2><p>${esc(me.user.name)} · <b>${esc(me.user.id)}</b> · ${esc(me.user.class)}</p><p class="grp-line"></p></div>
+        <div class="actions"><button type="button" class="btn primary" data-act="group">👥 Group</button><button type="button" class="btn ghost" data-act="logout">Log out</button></div>
+      </section>`);
+    const grpLine = card.querySelector(".grp-line");
+    const drawGroup = g => { grpLine.innerHTML = g.length ? `👥 Working with <b>${g.map(m => esc(A.firstName(m.name))).join(", ")}</b>` : `Working alone. Press <b>👥 Group</b> to add your teammates.`; };
+    drawGroup(me.group);
+    card.querySelector('[data-act="group"]').onclick = () => A.openGroupManager(drawGroup);
+    card.querySelector('[data-act="logout"]').onclick = async () => { await A.logout(); start(); };
+    app.appendChild(card);
+    const tracks = h(`<div class="tracks single"></div>`);
+    tracks.innerHTML = lessonList(me.user.track, progress);
+    app.appendChild(tracks);
+  }
+
+  /* ---------- teacher ---------- */
+  function showTeacher() {
+    clearInterval(countdown);
+    sub.textContent = "Teacher view: lessons show every answer.";
+    app.innerHTML = "";
+    const card = h(`
+      <section class="card student-card teacher">
+        <div class="avatar big">👩‍🏫</div>
+        <div class="who"><h2>Teacher</h2><p>Open a lesson to see it with all answers and solutions.</p></div>
+        <div class="actions"><a class="btn primary" href="teacher.html">📊 Dashboard</a><button type="button" class="btn ghost" data-act="logout">Log out</button></div>
+      </section>`);
+    card.querySelector('[data-act="logout"]').onclick = async () => { await A.logout(); start(); };
+    app.appendChild(card);
+    const tracks = h(`<div class="tracks"></div>`);
+    tracks.innerHTML = lessonList("A") + lessonList("B");
+    app.appendChild(tracks);
+  }
+
+  /* ---------- server unreachable: lessons still work, saved on this computer ---------- */
+  function showOffline(msg) {
+    sub.textContent = "Choose your track, then open today's lesson.";
+    app.innerHTML = `<div class="banner warn">⚠️ ${esc(msg)} You can still open the lessons: your work is saved on this computer only.</div>`;
+    const tracks = h(`<div class="tracks"></div>`);
+    tracks.innerHTML = lessonList("A") + lessonList("B");
+    app.appendChild(tracks);
+  }
+
+  async function start() {
+    if (A.role === "student") return showStudent();
+    if (A.role === "teacher") return showTeacher();
+    app.innerHTML = `<div class="loading-line"><span class="spinner"></span> Connecting…</div>`;
+    try { showGuest(await A.status()); }
+    catch (e) { showOffline(e.message); }
+  }
+  start();
+})();
 </script>
 </body>
 </html>
